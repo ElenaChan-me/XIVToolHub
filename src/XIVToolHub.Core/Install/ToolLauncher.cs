@@ -15,7 +15,7 @@ public sealed class ToolLauncher(HubPaths paths)
         ArgumentNullException.ThrowIfNull(tool);
         if (tool.Kind != ToolKind.Application)
         {
-            throw new HubException("Dalamud プラグインはゲーム内で読み込まれるため、ここからは起動できません。");
+            throw new HubException("プラグインは ACT やゲーム内で読み込まれるため、ここからは起動できません。");
         }
         if (!ToolCatalog.IsSafeRelativePath(tool.EntryFile))
         {
@@ -43,6 +43,7 @@ public sealed class ToolLauncher(HubPaths paths)
             using var process = Process.Start(new ProcessStartInfo(exe)
             {
                 WorkingDirectory = Path.GetDirectoryName(exe)!,
+                Arguments = tool.LaunchArguments,
                 UseShellExecute = false,
             });
         }

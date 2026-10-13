@@ -14,9 +14,54 @@
     "notes": "XIVLauncher と Dalamud が必要です。"
   },
   {
+    "id": "act",
+    "name": "ACT（Advanced Combat Tracker）",
+    "description": "戦闘ログの解析ツール。FFXIV_ACT_Plugin や OverlayPlugin の読み込み先になります。",
+    "kind": "application",
+    "source": {
+      "owner": "EQAditu",
+      "repo": "AdvancedCombatTracker",
+      "assetPattern": "ACTv3.zip",
+      "includePrerelease": false
+    },
+    "entryFile": "Advanced Combat Tracker.exe",
+    "launchArguments": "-portable",
+    "notes": "ポータブル版として XIVToolHub のフォルダにインストールし、設定もそのフォルダ内に保存します。初回起動時はスタートアップウィザードが表示されます。"
+  },
+  {
+    "id": "ffxiv-act-plugin",
+    "name": "FFXIV_ACT_Plugin",
+    "description": "ACT で FINAL FANTASY XIV のログを解析するためのプラグイン。",
+    "kind": "actPlugin",
+    "source": {
+      "owner": "ravahn",
+      "repo": "FFXIV_ACT_Plugin",
+      "assetPattern": "FFXIV_ACT_Plugin_*.zip",
+      "includePrerelease": false
+    },
+    "entryFile": "FFXIV_ACT_Plugin.dll",
+    "dependsOn": [ "act" ],
+    "notes": "ACT の起動中はインストール・更新できません。"
+  },
+  {
+    "id": "overlayplugin",
+    "name": "OverlayPlugin",
+    "description": "ACT のデータをオーバーレイや WebSocket で外部に提供するプラグイン（ngld 版の後継）。",
+    "kind": "actPlugin",
+    "source": {
+      "owner": "OverlayPlugin",
+      "repo": "OverlayPlugin",
+      "assetPattern": "OverlayPlugin-*.zip",
+      "includePrerelease": false
+    },
+    "entryFile": "OverlayPlugin/OverlayPlugin.dll",
+    "dependsOn": [ "act" ],
+    "notes": "Triggevent を使う場合は、ACT の OverlayPlugin の設定で WebSocket サーバーを開始してください。"
+  },
+  {
     "id": "triggevent-jp",
     "name": "Triggevent JP",
-    "description": "トリガー、オートマーカー、DoT・リキャスト表示、ログ解析などをまとめたツール（日本語化版）。",
+    "description": "トリガー、オートマーカー、DoT・リキャスト表示、ログ解析などをまとめたツール（日本語化・最適化版）。",
     "kind": "application",
     "source": {
       "owner": "ElenaChan-me",
@@ -24,7 +69,8 @@
       "assetPattern": "triggevent-jp-win.zip",
       "includePrerelease": false
     },
-    "entryFile": "triggevent.exe",
-    "notes": "ACT と OverlayPlugin の WebSocket サーバーが必要です。"
+    "entryFile": "triggevent/triggevent.exe",
+    "dependsOn": [ "act", "ffxiv-act-plugin", "overlayplugin" ],
+    "notes": "ACT・FFXIV_ACT_Plugin・OverlayPlugin も一緒にインストールされます。OverlayPlugin の WebSocket サーバーを開始してから起動してください。"
   }
 ]

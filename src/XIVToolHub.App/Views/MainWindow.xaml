@@ -90,6 +90,10 @@
                                     </StackPanel>
                                     <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Margin="0,4,0,0" />
                                     <TextBlock Text="{Binding Notes}" Style="{StaticResource HintText}" Margin="0,2,0,0" />
+                                    <TextBlock Style="{StaticResource HintText}" Margin="0,2,0,0"
+                                               Visibility="{Binding HasDependencies, Converter={StaticResource BoolToVisibility}}">
+                                        <Run Text="必要なツール:" /> <Run Text="{Binding DependsOnText, Mode=OneWay}" />
+                                    </TextBlock>
                                     <TextBlock Style="{StaticResource HintText}" Margin="0,4,0,0">
                                         <Run Text="インストール済み:" /> <Run Text="{Binding InstalledVersionText, Mode=OneWay}" />
                                         <Run Text="   最新:" /> <Run Text="{Binding LatestVersionText, Mode=OneWay}" />

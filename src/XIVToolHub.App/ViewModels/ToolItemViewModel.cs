@@ -37,7 +37,17 @@ public sealed class ToolItemViewModel : ObservableObject
 
     public string Notes => Definition.Notes;
 
-    public string KindLabel => Definition.Kind == ToolKind.DalamudPlugin ? "Dalamud プラグイン" : "アプリ";
+    public string KindLabel => Definition.Kind switch
+    {
+        ToolKind.DalamudPlugin => "Dalamud プラグイン",
+        ToolKind.ActPlugin => "ACT プラグイン",
+        _ => "アプリ",
+    };
+
+    /// <summary>依存するツールの名前。画面表示用に MainViewModel が設定する。</summary>
+    public string DependsOnText { get; init; } = "";
+
+    public bool HasDependencies => DependsOnText.Length > 0;
 
     public string SourceLabel => $"{Definition.Source.Owner}/{Definition.Source.Repo}";
 

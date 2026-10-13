@@ -1,5 +1,6 @@
 using System.Net;
 using XIVToolHub.Core;
+using XIVToolHub.Core.Act;
 using XIVToolHub.Core.Catalog;
 using XIVToolHub.Core.Dalamud;
 using XIVToolHub.Core.GitHub;
@@ -169,7 +170,8 @@ public class InstallerTests
             Client = new GitHubReleaseClient(http, () => token);
             var clock = new ManualClock();
             Dalamud = new DalamudConfigEditor(Paths.DalamudConfigPath, Game, clock);
-            Installer = new ToolInstaller(Paths, Client, new InstalledStore(Paths), Dalamud, Game, clock);
+            Act = new ActConfigEditor(Paths.ToolDirectory(ToolCatalog.ActToolId), ActProcess, clock);
+            Installer = new ToolInstaller(Paths, Client, new InstalledStore(Paths), Dalamud, Act, Game, clock);
         }
 
         public TempDirectory Temp { get; } = new();
@@ -183,6 +185,10 @@ public class InstallerTests
         public GitHubReleaseClient Client { get; }
 
         public DalamudConfigEditor Dalamud { get; }
+
+        public FakeGameDetector ActProcess { get; } = new();
+
+        public ActConfigEditor Act { get; }
 
         public ToolInstaller Installer { get; }
 
