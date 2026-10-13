@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, "feature/**", "release/**", "hotfix/**"]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore XIVToolHub.sln
+
+      - name: Format check
+        run: dotnet format XIVToolHub.sln --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build XIVToolHub.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test XIVToolHub.sln -c Release --no-build
