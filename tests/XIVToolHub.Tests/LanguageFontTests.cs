@@ -160,6 +160,48 @@ public class LanguageFontTests
         Assert.Throws<HubException>(() => env.Installer.ApplySettings(TestData.App(), new ToolPreferences("ja", null)));
     }
 
+    [Fact]
+    public void HubSettings_DefaultsToDarkAndPersistsTheme()
+    {
+        using var temp = new TempDirectory();
+        var paths = temp.CreatePaths();
+
+        var settings = new Core.Storage.HubSettingsStore(paths);
+        Assert.Equal(HubThemes.Dark, settings.Theme);
+        settings.SetTheme(HubThemes.Light);
+        Assert.Equal(HubThemes.Light, new Core.Storage.HubSettingsStore(paths).Theme);
+        Assert.Throws<HubException>(() => settings.SetTheme("pink"));
+
+        // 壊れた設定ファイルでも既定のテーマで起動できる
+        File.WriteAllText(paths.SettingsFile, "{ broken");
+        Assert.Equal(HubThemes.Dark, new Core.Storage.HubSettingsStore(paths).Theme);
+    }
+
+    [Fact]
+    public async Task Theme_IsWrittenOnInstallAndRefreshedForInstalledTools()
+    {
+        using var env = new Env();
+        var tool = LocalizedApp();
+        env.Publish("r1");
+        await env.Installer.InstallAsync(tool, false, new ToolPreferences("ja", null), null, CancellationToken.None);
+        var settingsPath = ToolSettingsFile.PathFor(env.Paths.ToolDirectory(tool.Id), tool);
+        Assert.Equal(HubThemes.Dark, ReadTheme(settingsPath));
+
+        env.Theme = HubThemes.Light;
+        env.Installer.RefreshSettings(tool);
+
+        Assert.Equal(HubThemes.Light, ReadTheme(settingsPath));
+        Assert.Equal(("ja", null), ReadSettings(settingsPath));
+        // 言語に対応しないツールには設定ファイルを作らない
+        env.Installer.RefreshSettings(TestData.App());
+    }
+
+    private static string? ReadTheme(string path)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        return document.RootElement.GetProperty("theme").GetString();
+    }
+
     private static ToolDefinition LocalizedApp() => TestData.App("loc-app") with { Languages = ["ja", "en", "ko", "zh"], SupportsFont = true };
 
     private static (string? Language, string? FontPath) ReadSettings(string path)
@@ -213,10 +255,12 @@ public class LanguageFontTests
             Installed = new InstalledStore(Paths);
             Fonts = new FontStore(Paths, new HttpClient());
             Installer = new ToolInstaller(Paths, github, Installed, new DalamudConfigEditor(Paths.DalamudConfigPath, game, clock),
-                new ActConfigEditor(Paths.ToolDirectory(ToolCatalog.ActToolId), game, clock), game, clock, Fonts.ResolvePath);
+                new ActConfigEditor(Paths.ToolDirectory(ToolCatalog.ActToolId), game, clock), game, clock, Fonts.ResolvePath, () => Theme);
         }
 
         public TempDirectory Temp { get; } = new();
+
+        public string Theme { get; set; } = HubThemes.Dark;
 
         public Core.Storage.HubPaths Paths { get; }
 

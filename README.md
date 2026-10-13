@@ -71,6 +71,13 @@ Glamaholic JP and Triggevent JP ask for a display language on first install. Aft
 The choice is written to `xivtoolhub-settings.json` next to the tool's entry file and kept across updates.
 Fonts are not bundled: those with an official direct download are fetched from the author's site, the others are imported from a file downloaded from the official page. Missing glyphs fall back to the default font. Please check each font's license on its official page.
 
+## テーマ / Themes
+
+画面下部の「テーマ」で、配色を「黒・赤」と「白・水色」から選べます。選んだテーマは XIVToolHub にすぐ反映され、Glamaholic JP と Triggevent JP にも `xivtoolhub-settings.json` の `theme`（`dark` / `light`）で伝わり、次回の起動時から同じ配色で表示されます。
+ハブから起動した Triggevent JP では、テーマを XIVToolHub でまとめて管理するため、Triggevent 側のテーマ選択は表示しません。
+
+Choose "Black / Red" or "White / Light Blue" at the bottom of the window. The theme is applied to XIVToolHub immediately and passed to Glamaholic JP and Triggevent JP through the `theme` field of `xivtoolhub-settings.json`, so all tools share the same colors from their next start.
+
 ## Dalamud プラグインの扱い / Dalamud plugins
 
 プラグインは `%LOCALAPPDATA%\XIVToolHub\tools\<ID>` に展開し、Dalamud の設定ファイル（`%APPDATA%\XIVLauncher\dalamudConfig.json`）の「開発用プラグインの場所」に DLL を登録します。
@@ -99,6 +106,7 @@ Dev mode is enabled if needed, a backup of `dalamudConfig.json` is made before e
 | `%LOCALAPPDATA%\XIVToolHub\installed.json` | インストール記録・表示言語・フォント / Install records, language and font |
 | `%LOCALAPPDATA%\XIVToolHub\fonts\` | 取得した追加フォント / Downloaded or imported fonts |
 | `%APPDATA%\XIVToolHub\catalog.json` | 追加したツールの定義 / User-added tools |
+| `%APPDATA%\XIVToolHub\settings.json` | テーマ / Theme |
 | 資格情報マネージャー `XIVToolHub:github-token` | GitHub トークン / GitHub token |
 
 ## 開発 / Development
