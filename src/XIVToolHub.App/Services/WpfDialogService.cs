@@ -33,6 +33,40 @@ public sealed class WpfDialogService(GitHubReleaseClient github, ITokenStore tok
         window.ShowDialog();
     }
 
+    public string? ShowLanguageSelection(IReadOnlyList<ToolDefinition> tools)
+    {
+        var window = new LanguageWindow(tools) { Owner = Owner };
+        return window.ShowDialog() == true ? window.Result : null;
+    }
+
+    public bool ShowToolSettings(ToolSettingsViewModel viewModel)
+    {
+        var window = new ToolSettingsWindow(viewModel) { Owner = Owner };
+        return window.ShowDialog() == true;
+    }
+
+    public string? PickFontFile()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "フォントファイルを選択",
+            Filter = "フォント・ZIP (*.ttf;*.otf;*.ttc;*.zip)|*.ttf;*.otf;*.ttc;*.zip",
+            CheckFileExists = true,
+        };
+        return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
+    }
+
+    public void OpenWebPage(string url)
+    {
+        // 配布元に HTTP だけのサイトもあるため HTTP も許可するが、それ以外のスキームは開かない
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+        {
+            ShowError("開けない URL です。");
+            return;
+        }
+        Start("explorer.exe", uri.AbsoluteUri);
+    }
+
     public void OpenFolder(string path)
     {
         if (!Directory.Exists(path))

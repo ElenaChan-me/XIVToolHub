@@ -24,9 +24,13 @@ public sealed class ToolInstaller
     private readonly ActConfigEditor _act;
     private readonly IProcessDetector _gameDetector;
     private readonly TimeProvider _clock;
+    private readonly Func<string?, string?> _resolveFontPath;
 
-    public ToolInstaller(HubPaths paths, GitHubReleaseClient github, InstalledStore installed, DalamudConfigEditor dalamud, ActConfigEditor act, IProcessDetector gameDetector, TimeProvider clock)
+    /// <param name="resolveFontPath">フォント ID から取得済みのフォントファイルを探す。未取得なら null を返す。</param>
+    public ToolInstaller(HubPaths paths, GitHubReleaseClient github, InstalledStore installed, DalamudConfigEditor dalamud, ActConfigEditor act, IProcessDetector gameDetector, TimeProvider clock,
+        Func<string?, string?>? resolveFontPath = null)
     {
+        _resolveFontPath = resolveFontPath ?? (_ => null);
         _paths = paths;
         _github = github;
         _installed = installed;
@@ -36,7 +40,11 @@ public sealed class ToolInstaller
         _clock = clock;
     }
 
-    public async Task<InstallResult> InstallAsync(ToolDefinition tool, bool force, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
+    public Task<InstallResult> InstallAsync(ToolDefinition tool, bool force, IProgress<InstallProgress>? progress, CancellationToken cancellationToken) =>
+        InstallAsync(tool, force, null, progress, cancellationToken);
+
+    /// <param name="preferences">表示言語とフォント。null なら前回の設定を引き継ぎ、初回は既定値にする。</param>
+    public async Task<InstallResult> InstallAsync(ToolDefinition tool, bool force, ToolPreferences? preferences, IProgress<InstallProgress>? progress, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(tool);
         if (ToolCatalog.Validate(tool) is { Count: > 0 } errors)
@@ -62,8 +70,13 @@ public sealed class ToolInstaller
             ?? throw new HubException($"リリース {release.TagName} に「{tool.Source.AssetPattern}」に一致するファイルがありません。");
 
         var current = _installed.Find(tool.Id);
+        var effective = ResolvePreferences(tool, current, preferences);
         if (!force && current is not null && current.Version == release.TagName && File.Exists(Path.Combine(current.InstallDirectory, tool.EntryFile)))
         {
+            if (preferences is not null && effective is not null)
+            {
+                ApplySettings(tool, effective);
+            }
             Report("最新版がインストールされています", 1);
             return new InstallResult(tool.Id, release.TagName, AlreadyLatest: true, DevModeEnabled: false);
         }
@@ -89,6 +102,11 @@ public sealed class ToolInstaller
 
             ReplaceDirectory(stagingPath, installDirectory, () =>
             {
+                // 入れ替え後のフォルダには設定ファイルが無いので、更新のたびに書き直す
+                if (effective is not null)
+                {
+                    ToolSettingsFile.Write(installDirectory, tool, effective, _resolveFontPath(effective.FontId));
+                }
                 switch (tool.Kind)
                 {
                     case ToolKind.DalamudPlugin:
@@ -108,6 +126,8 @@ public sealed class ToolInstaller
                 InstallDirectory = installDirectory,
                 RegisteredPluginPath = tool.Kind is ToolKind.DalamudPlugin or ToolKind.ActPlugin ? entryPath : null,
                 InstalledAt = _clock.GetLocalNow(),
+                Language = effective?.Language,
+                FontId = effective?.FontId,
             });
 
             Report("完了しました", 1);
@@ -118,6 +138,28 @@ public sealed class ToolInstaller
             TryDeleteFile(downloadPath);
             TryDeleteDirectory(stagingPath);
         }
+    }
+
+    /// <summary>
+    /// インストール済みツールの表示言語とフォントを変更する。ツールは次回の起動時に読み込む。
+    /// </summary>
+    public void ApplySettings(ToolDefinition tool, ToolPreferences preferences)
+    {
+        ArgumentNullException.ThrowIfNull(tool);
+        ArgumentNullException.ThrowIfNull(preferences);
+        if (!tool.SupportsLanguage)
+        {
+            throw new HubException($"{tool.Name} は表示言語の変更に対応していません。");
+        }
+        var current = _installed.Find(tool.Id) ?? throw new HubException($"{tool.Name} はインストールされていません。");
+        if (!File.Exists(Path.Combine(current.InstallDirectory, tool.EntryFile)))
+        {
+            throw new HubException($"{tool.Name} のファイルが見つかりません。もう一度インストールしてください。");
+        }
+        var fontId = NormalizeFont(tool, preferences);
+        var normalized = preferences with { FontId = fontId };
+        ToolSettingsFile.Write(current.InstallDirectory, tool, normalized, _resolveFontPath(fontId));
+        _installed.Set(current with { Language = normalized.Language, FontId = fontId });
     }
 
     public void Uninstall(ToolDefinition tool)
@@ -161,6 +203,32 @@ public sealed class ToolInstaller
     {
         ArgumentNullException.ThrowIfNull(tool);
         return await _github.GetLatestReleaseAsync(tool.Source, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static ToolPreferences? ResolvePreferences(ToolDefinition tool, InstalledTool? current, ToolPreferences? requested)
+    {
+        if (!tool.SupportsLanguage)
+        {
+            return null;
+        }
+        var candidate = requested
+            ?? (current?.Language is { } language ? new ToolPreferences(language, current.FontId) : null);
+        if (candidate is null || !tool.Languages.Contains(candidate.Language))
+        {
+            // カタログ側で言語が減った場合なども既定値に戻す
+            candidate = ToolPreferences.DefaultFor(tool);
+        }
+        return candidate with { FontId = NormalizeFont(tool, candidate) };
+    }
+
+    /// <summary>フォントは日本語表示かつ対応ツールのときだけ、カタログにある ID を残す。</summary>
+    private static string? NormalizeFont(ToolDefinition tool, ToolPreferences preferences)
+    {
+        if (!tool.SupportsFont || preferences.Language != ToolLanguages.Japanese || preferences.FontId is null)
+        {
+            return null;
+        }
+        return Fonts.FontCatalog.Find(preferences.FontId) is null ? null : preferences.FontId;
     }
 
     private void EnsurePluginEditable()

@@ -4,6 +4,7 @@ using XIVToolHub.Core;
 using XIVToolHub.Core.Act;
 using XIVToolHub.Core.Catalog;
 using XIVToolHub.Core.Dalamud;
+using XIVToolHub.Core.Fonts;
 using XIVToolHub.Core.GitHub;
 using XIVToolHub.Core.Install;
 using XIVToolHub.Core.Models;
@@ -103,7 +104,7 @@ public class AppTests
         var installed = new InstalledStore(paths);
         var installer = new ToolInstaller(paths, github, installed, new DalamudConfigEditor(paths.DalamudConfigPath, game, clock), new ActConfigEditor(paths.ToolDirectory(ToolCatalog.ActToolId), new FakeGameDetector(), clock), game, clock);
         var dialogs = new RecordingDialogs();
-        var vm = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), paths, dialogs, clock);
+        var vm = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), new FontStore(paths, new HttpClient()), paths, dialogs, clock);
 
         foreach (var item in vm.Tools.Where(t => !t.IsBuiltIn))
         {
@@ -149,6 +150,16 @@ public class AppTests
         }
 
         public void OpenUrl(string url)
+        {
+        }
+
+        public string? ShowLanguageSelection(IReadOnlyList<ToolDefinition> tools) => null;
+
+        public bool ShowToolSettings(ToolSettingsViewModel viewModel) => false;
+
+        public string? PickFontFile() => null;
+
+        public void OpenWebPage(string url)
         {
         }
     }

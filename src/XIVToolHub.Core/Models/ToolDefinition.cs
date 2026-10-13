@@ -58,6 +58,15 @@ public sealed record ToolDefinition
     /// <summary>アプリを起動するときの引数。</summary>
     public string LaunchArguments { get; init; } = "";
 
+    /// <summary>選べる表示言語のコード。空なら言語選択に対応していない。</summary>
+    public IReadOnlyList<string> Languages { get; init; } = [];
+
+    /// <summary>日本語表示のときに追加フォントを選べるか。</summary>
+    public bool SupportsFont { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool SupportsLanguage => Languages.Count > 0;
+
     /// <summary>アプリに同梱した定義か。同梱定義はカタログから削除できない。</summary>
     public bool IsBuiltIn { get; init; }
 }

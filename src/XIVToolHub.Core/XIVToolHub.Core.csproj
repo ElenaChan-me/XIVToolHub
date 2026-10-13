@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Catalog\builtin-catalog.json" LogicalName="XIVToolHub.Core.builtin-catalog.json" />
+    <EmbeddedResource Include="Fonts\builtin-fonts.json" LogicalName="XIVToolHub.Core.builtin-fonts.json" />
   </ItemGroup>
 
 </Project>

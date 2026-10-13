@@ -18,4 +18,10 @@ public sealed record InstalledTool
     public string? RegisteredPluginPath { get; init; }
 
     public required DateTimeOffset InstalledAt { get; init; }
+
+    /// <summary>選んだ表示言語のコード。言語選択に対応しないツールは null。</summary>
+    public string? Language { get; init; }
+
+    /// <summary>日本語表示で使う追加フォントの ID。標準のフォントを使う場合は null。</summary>
+    public string? FontId { get; init; }
 }

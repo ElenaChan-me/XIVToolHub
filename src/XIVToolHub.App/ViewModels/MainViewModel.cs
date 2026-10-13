@@ -4,6 +4,7 @@ using XIVToolHub.App.Infrastructure;
 using XIVToolHub.App.Services;
 using XIVToolHub.Core;
 using XIVToolHub.Core.Catalog;
+using XIVToolHub.Core.Fonts;
 using XIVToolHub.Core.Install;
 using XIVToolHub.Core.Storage;
 
@@ -17,14 +18,16 @@ public sealed class MainViewModel : ObservableObject
     private readonly InstalledStore _installed;
     private readonly ToolInstaller _installer;
     private readonly ToolLauncher _launcher;
+    private readonly FontStore _fonts;
     private readonly HubPaths _paths;
     private readonly IDialogService _dialogs;
     private readonly TimeProvider _clock;
     private bool _isBusy;
     private ToolItemViewModel? _selectedItem;
 
-    public MainViewModel(ToolCatalog catalog, InstalledStore installed, ToolInstaller installer, ToolLauncher launcher, HubPaths paths, IDialogService dialogs, TimeProvider clock)
+    public MainViewModel(ToolCatalog catalog, InstalledStore installed, ToolInstaller installer, ToolLauncher launcher, FontStore fonts, HubPaths paths, IDialogService dialogs, TimeProvider clock)
     {
+        _fonts = fonts;
         _catalog = catalog;
         _installed = installed;
         _installer = installer;
@@ -44,6 +47,7 @@ public sealed class MainViewModel : ObservableObject
         AddToolCommand = new RelayCommand(AddTool, () => !_isBusy);
         RemoveToolCommand = new RelayCommand<ToolItemViewModel>(RemoveTool, t => !_isBusy && !t.IsBuiltIn);
         TokenSettingsCommand = new RelayCommand(() => _dialogs.ShowTokenSettings(), () => !_isBusy);
+        ToolSettingsCommand = new RelayCommand<ToolItemViewModel>(OpenToolSettings, t => !_isBusy && t.CanConfigure);
 
         ReloadTools();
     }
@@ -63,6 +67,7 @@ public sealed class MainViewModel : ObservableObject
     public ICommand AddToolCommand { get; }
     public ICommand RemoveToolCommand { get; }
     public ICommand TokenSettingsCommand { get; }
+    public ICommand ToolSettingsCommand { get; }
 
     public bool IsBusy
     {
@@ -129,6 +134,11 @@ public sealed class MainViewModel : ObservableObject
         {
             return;
         }
+        var preferences = AskLanguages(targets);
+        if (preferences is null)
+        {
+            return;
+        }
 
         IsBusy = true;
         var succeeded = 0;
@@ -147,7 +157,9 @@ public sealed class MainViewModel : ObservableObject
                 });
                 try
                 {
-                    var result = await _installer.InstallAsync(item.Definition, force: false, progress, CancellationToken.None);
+                    var result = await _installer.InstallAsync(item.Definition, force: false, preferences.GetValueOrDefault(item.Id), progress, CancellationToken.None);
+                    var record = _installed.Find(item.Id);
+                    item.SetPreferences(record?.Language, record?.FontId);
                     item.InstalledVersion = result.Version;
                     item.LatestVersion = result.Version;
                     devModeEnabled |= result.DevModeEnabled;
@@ -186,6 +198,48 @@ public sealed class MainViewModel : ObservableObject
         else
         {
             _dialogs.ShowError(message + "\n\n失敗した理由はログを確認してください。");
+        }
+    }
+
+    /// <summary>
+    /// 初めてインストールする言語選択対応ツールの表示言語を聞く。キャンセルされたら null。
+    /// 更新の場合は前回の設定を引き継ぐので聞かない。
+    /// </summary>
+    private Dictionary<string, ToolPreferences>? AskLanguages(IEnumerable<ToolItemViewModel> targets)
+    {
+        var result = new Dictionary<string, ToolPreferences>();
+        var groups = targets
+            .Where(t => t.Definition.SupportsLanguage && _installed.Find(t.Id) is null)
+            .Select(t => t.Definition)
+            .GroupBy(d => string.Join(",", d.Languages));
+        // 対応言語が同じツールはまとめて1回だけ聞く
+        foreach (var group in groups)
+        {
+            var tools = group.ToList();
+            var language = _dialogs.ShowLanguageSelection(tools);
+            if (language is null)
+            {
+                return null;
+            }
+            foreach (var tool in tools)
+            {
+                result[tool.Id] = new ToolPreferences(language, null);
+            }
+        }
+        return result;
+    }
+
+    private void OpenToolSettings(ToolItemViewModel item)
+    {
+        if (_installed.Find(item.Id) is not { } record)
+        {
+            return;
+        }
+        if (_dialogs.ShowToolSettings(new ToolSettingsViewModel(item.Definition, record, _installer, _fonts, _dialogs))
+            && _installed.Find(item.Id) is { } updated)
+        {
+            item.SetPreferences(updated.Language, updated.FontId);
+            AddLog($"{item.Name}: {item.PreferencesText} に変更しました。次回の起動時に反映されます。");
         }
     }
 

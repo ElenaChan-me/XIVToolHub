@@ -22,6 +22,8 @@ Third-party tools are prohibited by the FINAL FANTASY XIV Terms of Service and m
   Add new tools to the catalog by GitHub repository
 - Private リポジトリ用の GitHub トークンを Windows の資格情報マネージャーに保存
   Store a GitHub token for private repositories in Windows Credential Manager
+- 日本語化したツールの表示言語（日本語・英語・韓国語・中国語）をインストール時に選択し、日本語の場合は後から追加フォントを選択
+  Choose the display language (Japanese, English, Korean, Chinese) of the localized tools at install time, and an additional font for Japanese later
 
 ### 同梱カタログ / Built-in catalog
 
@@ -54,6 +56,21 @@ ACT is installed as a portable copy under `%LOCALAPPDATA%\XIVToolHub\tools\act` 
 ACT plugins are registered in the portable ACT configuration (with a backup), and nothing is changed while ACT is running.
 For Triggevent, start the OverlayPlugin WebSocket server in ACT.
 
+## 表示言語とフォント / Display language and fonts
+
+Glamaholic JP と Triggevent JP は、初めてインストールするときに表示言語（日本語・English・한국어・简体中文）を選びます。
+インストール後は、ツールの「表示設定」から言語を変更でき、日本語の場合は 30 種類の追加フォントから選べます。
+
+- 選んだ設定は、ツールの起動ファイル・DLL と同じフォルダの `xivtoolhub-settings.json`（`{"language": "ja", "fontPath": "..."}`）に書き込み、ツールは起動時に読み込みます。更新しても設定は引き継ぎます。
+- フォントは同梱していません。公式に直接ダウンロードできるもの（源暎ぽっぷる、ふんわりラウンド、ポプらむ☆キュート、はちまるポップ、モッチーポップ）は配布元から取得し、それ以外は公式ページで入手したファイル（.ttf / .otf / .ttc または ZIP）を取り込みます。
+- 取得したフォントは `%LOCALAPPDATA%\XIVToolHub\fonts\<ID>` に置きます。ファイルの先頭のバイトでフォントであることを確認してから取り込みます。
+- 収録文字が少ないフォント（かなのみ等）でも、足りない文字は標準フォントで表示します。
+- 各フォントの利用規約は配布元で確認してください。さなフォン丸には「アプリへの使用禁止」の記載があるため、画面に注意を表示します。
+
+Glamaholic JP and Triggevent JP ask for a display language on first install. Afterwards, the language can be changed from the tool's settings, and for Japanese one of 30 additional fonts can be selected.
+The choice is written to `xivtoolhub-settings.json` next to the tool's entry file and kept across updates.
+Fonts are not bundled: those with an official direct download are fetched from the author's site, the others are imported from a file downloaded from the official page. Missing glyphs fall back to the default font. Please check each font's license on its official page.
+
 ## Dalamud プラグインの扱い / Dalamud plugins
 
 プラグインは `%LOCALAPPDATA%\XIVToolHub\tools\<ID>` に展開し、Dalamud の設定ファイル（`%APPDATA%\XIVLauncher\dalamudConfig.json`）の「開発用プラグインの場所」に DLL を登録します。
@@ -68,7 +85,7 @@ Dev mode is enabled if needed, a backup of `dalamudConfig.json` is made before e
 
 ## 安全のための制限 / Safety
 
-- ダウンロード先は `api.github.com` のリリースアセットに限定 / Downloads are limited to GitHub release assets
+- ツールのダウンロード先は `api.github.com` のリリースアセットに限定し、フォントはカタログに載せた公式の HTTPS の URL だけから取得 / Tools are downloaded only from GitHub release assets, fonts only from the official HTTPS URLs in the font catalog
 - ZIP 内の展開先の外を指すパスや、異常に大きいファイルは拒否 / Zip-slip and oversized archives are rejected
 - 更新は別フォルダに用意してから入れ替え、失敗時は元のバージョンを残す / Updates are staged and swapped; the previous version is kept on failure
 - 起動できるのは各ツールのフォルダ内の実行ファイルのみ / Only executables inside the tool's folder can be launched
@@ -79,7 +96,8 @@ Dev mode is enabled if needed, a backup of `dalamudConfig.json` is made before e
 | パス / Path | 内容 / Contents |
 | --- | --- |
 | `%LOCALAPPDATA%\XIVToolHub\tools\` | インストールしたツール / Installed tools |
-| `%LOCALAPPDATA%\XIVToolHub\installed.json` | インストール記録 / Install records |
+| `%LOCALAPPDATA%\XIVToolHub\installed.json` | インストール記録・表示言語・フォント / Install records, language and font |
+| `%LOCALAPPDATA%\XIVToolHub\fonts\` | 取得した追加フォント / Downloaded or imported fonts |
 | `%APPDATA%\XIVToolHub\catalog.json` | 追加したツールの定義 / User-added tools |
 | 資格情報マネージャー `XIVToolHub:github-token` | GitHub トークン / GitHub token |
 
