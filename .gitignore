@@ -1,0 +1,21 @@
+# Claude Code local configuration
+CLAUDE.md
+.claude/
+
+# Build output
+bin/
+obj/
+publish/
+TestResults/
+*.binlog
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Local data / secrets
+.env
+*.local.json
