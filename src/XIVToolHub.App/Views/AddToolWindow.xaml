@@ -1,0 +1,76 @@
+<Window x:Class="XIVToolHub.App.Views.AddToolWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:XIVToolHub.App.ViewModels"
+        Title="ツールを追加"
+        Width="620" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Style="{StaticResource WindowStyle}">
+    <StackPanel Margin="20">
+        <TextBlock Style="{StaticResource HintText}" Margin="0,0,0,12"
+                   Text="GitHub のリリースで配布されているツールを追加します。リポジトリを入力して「リリースを確認」を押し、インストールする ZIP を選んでください。" />
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="140" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="GitHub リポジトリ" Style="{StaticResource FieldLabel}" />
+            <TextBox Grid.Column="1" Text="{Binding RepositoryText, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="GitHub リポジトリ" ToolTip="例: https://github.com/owner/repo" />
+            <Button Grid.Column="2" Content="リリースを確認" Command="{Binding LookupCommand}" Margin="8,0,0,0" />
+
+            <TextBlock Grid.Row="2" Text="リリースのファイル" Style="{StaticResource FieldLabel}" VerticalAlignment="Top" Margin="0,4,12,0" />
+            <ListBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Assets}" SelectedItem="{Binding SelectedAsset}"
+                     Height="90" BorderBrush="{StaticResource BorderBrush}" />
+
+            <TextBlock Grid.Row="4" Text="ファイル名（パターン）" Style="{StaticResource FieldLabel}" />
+            <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding AssetPattern, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="* と ? が使えます。例: mytool-win-*.zip" />
+
+            <TextBlock Grid.Row="6" Text="種類" Style="{StaticResource FieldLabel}" />
+            <ComboBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{x:Static vm:AddToolViewModel.KindOptions}"
+                      SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Kind}" />
+
+            <TextBlock Grid.Row="8" Text="起動ファイル・DLL" Style="{StaticResource FieldLabel}" />
+            <TextBox Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding EntryFile, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="ZIP を展開したフォルダ内の相対パス。例: mytool/mytool.exe、MyPlugin.dll" />
+
+            <TextBlock Grid.Row="10" Text="名前" Style="{StaticResource FieldLabel}" />
+            <TextBox Grid.Row="10" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Grid.Row="12" Text="ID" Style="{StaticResource FieldLabel}" />
+            <TextBox Grid.Row="12" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Id, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="半角英小文字・数字・ハイフン。インストール先のフォルダ名になります。" />
+
+            <TextBlock Grid.Row="14" Text="説明" Style="{StaticResource FieldLabel}" />
+            <TextBox Grid.Row="14" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" />
+        </Grid>
+
+        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,12,0,0" Foreground="{StaticResource SubTextBrush}" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="追加" IsDefault="True" Style="{StaticResource PrimaryButton}" Click="OnAddClick" />
+            <Button Content="キャンセル" IsCancel="True" Margin="0" />
+        </StackPanel>
+    </StackPanel>
+</Window>

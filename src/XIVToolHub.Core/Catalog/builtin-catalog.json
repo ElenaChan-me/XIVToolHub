@@ -1,0 +1,30 @@
+[
+  {
+    "id": "glamaholic-jp",
+    "name": "Glamaholic JP",
+    "description": "ミラージュプレートを好きなだけ保存し、ミラージュドレッサーで呼び出せる Dalamud プラグイン（日本語化・軽量化版）。",
+    "kind": "dalamudPlugin",
+    "source": {
+      "owner": "ElenaChan-me",
+      "repo": "Glamaholic-JP",
+      "assetPattern": "latest.zip",
+      "includePrerelease": false
+    },
+    "entryFile": "GlamaholicJP.dll",
+    "notes": "XIVLauncher と Dalamud が必要です。"
+  },
+  {
+    "id": "triggevent-jp",
+    "name": "Triggevent JP",
+    "description": "トリガー、オートマーカー、DoT・リキャスト表示、ログ解析などをまとめたツール（日本語化版）。",
+    "kind": "application",
+    "source": {
+      "owner": "ElenaChan-me",
+      "repo": "Triggevent-JP",
+      "assetPattern": "triggevent-jp-win.zip",
+      "includePrerelease": false
+    },
+    "entryFile": "triggevent.exe",
+    "notes": "ACT と OverlayPlugin の WebSocket サーバーが必要です。"
+  }
+]
