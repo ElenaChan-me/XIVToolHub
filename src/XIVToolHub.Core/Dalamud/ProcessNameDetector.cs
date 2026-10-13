@@ -2,21 +2,23 @@ using System.Diagnostics;
 
 namespace XIVToolHub.Core.Dalamud;
 
-public interface IGameProcessDetector
+public interface IProcessDetector
 {
-    bool IsGameRunning();
+    bool IsRunning();
 }
 
 /// <summary>
-/// プロセス名だけでゲームの起動を判定する。ゲームのプロセスには一切アクセスしない。
+/// プロセス名だけで起動中かを判定する。対象のプロセスには一切アクセスしない。
 /// </summary>
-public sealed class GameProcessDetector : IGameProcessDetector
+public sealed class ProcessNameDetector(params string[] processNames) : IProcessDetector
 {
-    private static readonly string[] GameProcessNames = ["ffxiv_dx11", "ffxiv"];
+    public static ProcessNameDetector Game { get; } = new("ffxiv_dx11", "ffxiv");
 
-    public bool IsGameRunning()
+    public static ProcessNameDetector Act { get; } = new("Advanced Combat Tracker", "ACTx86");
+
+    public bool IsRunning()
     {
-        foreach (var name in GameProcessNames)
+        foreach (var name in processNames)
         {
             var processes = Process.GetProcessesByName(name);
             try

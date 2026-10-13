@@ -22,10 +22,10 @@ public sealed class DalamudConfigEditor
     private const long MaxConfigBytes = 16 * 1024 * 1024;
 
     private readonly string _configPath;
-    private readonly IGameProcessDetector _gameDetector;
+    private readonly IProcessDetector _gameDetector;
     private readonly TimeProvider _clock;
 
-    public DalamudConfigEditor(string configPath, IGameProcessDetector gameDetector, TimeProvider clock)
+    public DalamudConfigEditor(string configPath, IProcessDetector gameDetector, TimeProvider clock)
     {
         _configPath = configPath;
         _gameDetector = gameDetector;
@@ -133,7 +133,7 @@ public sealed class DalamudConfigEditor
                 $"Dalamud の設定ファイルが見つかりません。XIVLauncher で一度ゲームを起動してから、もう一度お試しください。\n{_configPath}");
         }
         // ゲーム起動中は Dalamud が設定を保存し直すため、書き換えても上書きされてしまう
-        if (_gameDetector.IsGameRunning())
+        if (_gameDetector.IsRunning())
         {
             throw new HubException("ゲームの起動中は Dalamud の設定を変更できません。ゲームを終了してからお試しください。");
         }
