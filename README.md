@@ -25,10 +25,34 @@ Third-party tools are prohibited by the FINAL FANTASY XIV Terms of Service and m
 
 ### 同梱カタログ / Built-in catalog
 
-| ツール / Tool | 種類 / Kind | 取得元 / Source |
-| --- | --- | --- |
-| Glamaholic JP | Dalamud プラグイン | ElenaChan-me/Glamaholic-JP |
-| Triggevent JP | アプリ / Application | ElenaChan-me/Triggevent-JP |
+| ツール / Tool | 種類 / Kind | 取得元 / Source | 必要なツール / Requires |
+| --- | --- | --- | --- |
+| Glamaholic JP | Dalamud プラグイン | ElenaChan-me/Glamaholic-JP | - |
+| ACT（Advanced Combat Tracker） | アプリ / Application | EQAditu/AdvancedCombatTracker | - |
+| FFXIV_ACT_Plugin | ACT プラグイン | ravahn/FFXIV_ACT_Plugin | ACT |
+| OverlayPlugin | ACT プラグイン | OverlayPlugin/OverlayPlugin | ACT |
+| Triggevent JP | アプリ / Application | ElenaChan-me/Triggevent-JP | ACT, FFXIV_ACT_Plugin, OverlayPlugin |
+
+ツールを選ぶと、必要なツールも自動で選択され、必要とされる側から順にインストールされます。
+OverlayPlugin は、更新が止まっている ngld 版ではなく、後継の OverlayPlugin/OverlayPlugin を使います。
+
+Selecting a tool also selects the tools it requires, and they are installed in dependency order.
+OverlayPlugin uses the maintained successor (OverlayPlugin/OverlayPlugin) rather than the inactive ngld version.
+
+## ACT とプラグイン / ACT and its plugins
+
+ACT は `%LOCALAPPDATA%\XIVToolHub\tools\act` にポータブル版としてインストールし、`-portable` で起動します。設定は同じフォルダの `Config\Advanced Combat Tracker.config.xml` に保存され、既存の ACT（`%APPDATA%\Advanced Combat Tracker`）には触れません。
+
+- ACT プラグインは展開後、上記の設定ファイルの `<ActPlugins>` に登録します。
+- ACT を一度も起動していない場合は、最小限の設定ファイルを作成します。ACT はこの状態でもプラグインを読み込みます。
+- 変更前には `Advanced Combat Tracker.config.xml.xivtoolhub-日時.bak` としてバックアップします。
+- ACT の起動中はプラグインのインストール・更新・削除を行いません。
+
+Triggevent を使うには、ACT の「Plugins」タブ → OverlayPlugin の設定で WebSocket サーバーを開始してください。
+
+ACT is installed as a portable copy under `%LOCALAPPDATA%\XIVToolHub\tools\act` and started with `-portable`; an existing ACT installation is not touched.
+ACT plugins are registered in the portable ACT configuration (with a backup), and nothing is changed while ACT is running.
+For Triggevent, start the OverlayPlugin WebSocket server in ACT.
 
 ## Dalamud プラグインの扱い / Dalamud plugins
 
