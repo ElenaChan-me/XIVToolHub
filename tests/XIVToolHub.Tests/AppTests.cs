@@ -8,6 +8,7 @@ using XIVToolHub.Core.Fonts;
 using XIVToolHub.Core.GitHub;
 using XIVToolHub.Core.Install;
 using XIVToolHub.Core.Models;
+using XIVToolHub.Core.Storage;
 
 namespace XIVToolHub.Tests;
 
@@ -104,7 +105,7 @@ public class AppTests
         var installed = new InstalledStore(paths);
         var installer = new ToolInstaller(paths, github, installed, new DalamudConfigEditor(paths.DalamudConfigPath, game, clock), new ActConfigEditor(paths.ToolDirectory(ToolCatalog.ActToolId), new FakeGameDetector(), clock), game, clock);
         var dialogs = new RecordingDialogs();
-        var vm = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), new FontStore(paths, new HttpClient()), paths, dialogs, clock);
+        var vm = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), new FontStore(paths, new HttpClient()), new HubSettingsStore(paths), _ => { }, paths, dialogs, clock);
 
         foreach (var item in vm.Tools.Where(t => !t.IsBuiltIn))
         {
