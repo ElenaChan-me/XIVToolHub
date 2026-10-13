@@ -11,7 +11,9 @@
       "includePrerelease": false
     },
     "entryFile": "GlamaholicJP.dll",
-    "notes": "XIVLauncher と Dalamud が必要です。"
+    "notes": "XIVLauncher と Dalamud が必要です。",
+    "languages": ["ja", "en", "ko", "zh"],
+    "supportsFont": true
   },
   {
     "id": "act",
@@ -71,6 +73,8 @@
     },
     "entryFile": "triggevent/triggevent.exe",
     "dependsOn": [ "act", "ffxiv-act-plugin", "overlayplugin" ],
-    "notes": "ACT・FFXIV_ACT_Plugin・OverlayPlugin も一緒にインストールされます。OverlayPlugin の WebSocket サーバーを開始してから起動してください。"
+    "notes": "ACT・FFXIV_ACT_Plugin・OverlayPlugin も一緒にインストールされます。OverlayPlugin の WebSocket サーバーを開始してから起動してください。",
+    "languages": ["ja", "en", "ko", "zh"],
+    "supportsFont": true
   }
 ]

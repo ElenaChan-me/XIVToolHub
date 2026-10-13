@@ -68,3 +68,38 @@ public sealed class AsyncRelayCommand(Func<Task> execute, Func<bool>? canExecute
         }
     }
 }
+
+/// <summary>
+/// 引数を受け取る非同期処理のコマンド。実行中は二重に実行されないようにする。
+/// </summary>
+public sealed class AsyncRelayCommand<T>(Func<T, Task> execute, Func<T, bool>? canExecute = null) : ICommand
+{
+    private bool _running;
+
+    public event EventHandler? CanExecuteChanged
+    {
+        add => CommandManager.RequerySuggested += value;
+        remove => CommandManager.RequerySuggested -= value;
+    }
+
+    public bool CanExecute(object? parameter) => !_running && parameter is T t && (canExecute?.Invoke(t) ?? true);
+
+    public async void Execute(object? parameter)
+    {
+        if (_running || parameter is not T t)
+        {
+            return;
+        }
+        _running = true;
+        CommandManager.InvalidateRequerySuggested();
+        try
+        {
+            await execute(t);
+        }
+        finally
+        {
+            _running = false;
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+}

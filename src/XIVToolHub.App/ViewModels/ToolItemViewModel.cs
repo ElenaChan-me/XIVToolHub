@@ -1,4 +1,5 @@
 using XIVToolHub.App.Infrastructure;
+using XIVToolHub.Core.Fonts;
 using XIVToolHub.Core.Models;
 
 namespace XIVToolHub.App.ViewModels;
@@ -20,11 +21,15 @@ public sealed class ToolItemViewModel : ObservableObject
     private double _progress;
     private bool _isWorking;
     private string? _error;
+    private string? _language;
+    private string? _fontId;
 
     public ToolItemViewModel(ToolDefinition definition, InstalledTool? installed)
     {
         Definition = definition;
         _installedVersion = installed?.Version;
+        _language = installed?.Language;
+        _fontId = installed?.FontId;
     }
 
     public ToolDefinition Definition { get; }
@@ -117,6 +122,29 @@ public sealed class ToolItemViewModel : ObservableObject
 
     public string LatestVersionText => _latestVersion ?? "-";
 
+    /// <summary>表示言語・フォントを設定できるか。インストール後に設定ファイルを書き込むため、未インストールでは設定できない。</summary>
+    public bool CanConfigure => Definition.SupportsLanguage && IsInstalled;
+
+    public string PreferencesText
+    {
+        get
+        {
+            var text = $"表示言語: {ToolLanguages.DisplayName(_language)}";
+            if (Definition.SupportsFont && _language == ToolLanguages.Japanese)
+            {
+                text += $"   フォント: {FontCatalog.Find(_fontId)?.Name ?? "標準"}";
+            }
+            return text;
+        }
+    }
+
+    public void SetPreferences(string? language, string? fontId)
+    {
+        _language = language;
+        _fontId = fontId;
+        OnPropertyChanged(nameof(PreferencesText));
+    }
+
     public bool IsWorking { get => _isWorking; set => SetProperty(ref _isWorking, value); }
 
     public double Progress { get => _progress; set => SetProperty(ref _progress, value); }
@@ -130,5 +158,6 @@ public sealed class ToolItemViewModel : ObservableObject
         OnPropertyChanged(nameof(StateLabel));
         OnPropertyChanged(nameof(InstalledVersionText));
         OnPropertyChanged(nameof(LatestVersionText));
+        OnPropertyChanged(nameof(CanConfigure));
     }
 }

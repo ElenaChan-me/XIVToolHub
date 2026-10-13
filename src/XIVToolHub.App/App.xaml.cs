@@ -7,6 +7,7 @@ using XIVToolHub.Core;
 using XIVToolHub.Core.Act;
 using XIVToolHub.Core.Catalog;
 using XIVToolHub.Core.Dalamud;
+using XIVToolHub.Core.Fonts;
 using XIVToolHub.Core.GitHub;
 using XIVToolHub.Core.Install;
 using XIVToolHub.Core.Storage;
@@ -16,6 +17,7 @@ namespace XIVToolHub.App;
 public partial class App : Application
 {
     private HttpClient? _http;
+    private HttpClient? _fontHttp;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -45,9 +47,13 @@ public partial class App : Application
 
         var dalamud = new DalamudConfigEditor(paths.DalamudConfigPath, gameDetector, clock);
         var act = new ActConfigEditor(paths.ToolDirectory(ToolCatalog.ActToolId), ProcessNameDetector.Act, clock);
-        var installer = new ToolInstaller(paths, github, installed, dalamud, act, gameDetector, clock);
+        // フォントの配布元は GitHub 以外もあるため、GitHub 用の設定を持たない別のクライアントを使う
+        _fontHttp = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+        _fontHttp.DefaultRequestHeaders.UserAgent.ParseAdd("XIVToolHub");
+        var fonts = new FontStore(paths, _fontHttp);
+        var installer = new ToolInstaller(paths, github, installed, dalamud, act, gameDetector, clock, fonts.ResolvePath);
         var dialogs = new WpfDialogService(github, tokenStore);
-        var viewModel = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), paths, dialogs, clock);
+        var viewModel = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), fonts, paths, dialogs, clock);
 
         var window = new MainWindow(viewModel);
         MainWindow = window;
@@ -58,6 +64,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _http?.Dispose();
+        _fontHttp?.Dispose();
         base.OnExit(e);
     }
 

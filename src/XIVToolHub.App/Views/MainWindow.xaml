@@ -94,6 +94,8 @@
                                                Visibility="{Binding HasDependencies, Converter={StaticResource BoolToVisibility}}">
                                         <Run Text="必要なツール:" /> <Run Text="{Binding DependsOnText, Mode=OneWay}" />
                                     </TextBlock>
+                                    <TextBlock Text="{Binding PreferencesText}" Style="{StaticResource HintText}" Margin="0,2,0,0"
+                                               Visibility="{Binding CanConfigure, Converter={StaticResource BoolToVisibility}}" />
                                     <TextBlock Style="{StaticResource HintText}" Margin="0,4,0,0">
                                         <Run Text="インストール済み:" /> <Run Text="{Binding InstalledVersionText, Mode=OneWay}" />
                                         <Run Text="   最新:" /> <Run Text="{Binding LatestVersionText, Mode=OneWay}" />
@@ -109,6 +111,9 @@
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,0,0,0">
                                     <Button Content="起動" Visibility="{Binding IsApplication, Converter={StaticResource BoolToVisibility}}"
                                             Command="{Binding DataContext.LaunchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}" />
+                                    <Button Content="表示設定" Visibility="{Binding CanConfigure, Converter={StaticResource BoolToVisibility}}"
+                                            Command="{Binding DataContext.ToolSettingsCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                             CommandParameter="{Binding}" />
                                     <Button Content="フォルダ" Style="{StaticResource LinkButton}"
                                             Command="{Binding DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"

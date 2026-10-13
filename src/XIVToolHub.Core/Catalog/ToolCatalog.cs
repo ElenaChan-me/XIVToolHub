@@ -137,6 +137,16 @@ public sealed partial class ToolCatalog
             errors.Add($"ACT プラグインは ACT（{ActToolId}）に依存させてください。");
         }
 
+        var languages = definition.Languages ?? [];
+        if (languages.Any(l => !ToolLanguages.IsSupported(l)) || languages.Distinct().Count() != languages.Count)
+        {
+            errors.Add("表示言語の指定が不正です。");
+        }
+        if (definition.SupportsFont && !languages.Contains(ToolLanguages.Japanese))
+        {
+            errors.Add("追加フォントは日本語表示に対応したツールだけで使えます。");
+        }
+
         var arguments = definition.LaunchArguments ?? "";
         if (arguments.Length > ArgumentsMaxLength || arguments.Any(char.IsControl) || arguments.Contains('"', StringComparison.Ordinal))
         {

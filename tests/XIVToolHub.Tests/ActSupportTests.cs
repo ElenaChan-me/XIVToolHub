@@ -4,6 +4,7 @@ using XIVToolHub.Core;
 using XIVToolHub.Core.Act;
 using XIVToolHub.Core.Catalog;
 using XIVToolHub.Core.Dalamud;
+using XIVToolHub.Core.Fonts;
 using XIVToolHub.Core.GitHub;
 using XIVToolHub.Core.Install;
 using XIVToolHub.Core.Models;
@@ -192,7 +193,7 @@ public class ActSupportTests
         var github = new GitHubReleaseClient(new HttpClient(new FakeGitHubHandler()) { BaseAddress = new Uri(GitHubReleaseClient.ApiBaseUrl) }, () => null);
         var installer = new ToolInstaller(paths, github, installed, new DalamudConfigEditor(paths.DalamudConfigPath, game, clock),
             new ActConfigEditor(paths.ToolDirectory(ToolCatalog.ActToolId), game, clock), game, clock);
-        var vm = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), paths, new NullDialogs(), clock);
+        var vm = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), new FontStore(paths, new HttpClient()), paths, new NullDialogs(), clock);
 
         vm.Tools.Single(t => t.Id == "triggevent-jp").IsSelected = true;
 
@@ -239,6 +240,16 @@ public class ActSupportTests
         }
 
         public void OpenUrl(string url)
+        {
+        }
+
+        public string? ShowLanguageSelection(IReadOnlyList<ToolDefinition> tools) => null;
+
+        public bool ShowToolSettings(ToolSettingsViewModel viewModel) => false;
+
+        public string? PickFontFile() => null;
+
+        public void OpenWebPage(string url)
         {
         }
     }
