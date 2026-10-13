@@ -25,12 +25,15 @@ public sealed class ToolInstaller
     private readonly IProcessDetector _gameDetector;
     private readonly TimeProvider _clock;
     private readonly Func<string?, string?> _resolveFontPath;
+    private readonly Func<string> _currentTheme;
 
     /// <param name="resolveFontPath">フォント ID から取得済みのフォントファイルを探す。未取得なら null を返す。</param>
+    /// <param name="currentTheme">ツールに伝える現在のテーマ。</param>
     public ToolInstaller(HubPaths paths, GitHubReleaseClient github, InstalledStore installed, DalamudConfigEditor dalamud, ActConfigEditor act, IProcessDetector gameDetector, TimeProvider clock,
-        Func<string?, string?>? resolveFontPath = null)
+        Func<string?, string?>? resolveFontPath = null, Func<string>? currentTheme = null)
     {
         _resolveFontPath = resolveFontPath ?? (_ => null);
+        _currentTheme = currentTheme ?? (() => HubThemes.Default);
         _paths = paths;
         _github = github;
         _installed = installed;
@@ -105,7 +108,7 @@ public sealed class ToolInstaller
                 // 入れ替え後のフォルダには設定ファイルが無いので、更新のたびに書き直す
                 if (effective is not null)
                 {
-                    ToolSettingsFile.Write(installDirectory, tool, effective, _resolveFontPath(effective.FontId));
+                    ToolSettingsFile.Write(installDirectory, tool, effective, _resolveFontPath(effective.FontId), _currentTheme());
                 }
                 switch (tool.Kind)
                 {
@@ -141,7 +144,7 @@ public sealed class ToolInstaller
     }
 
     /// <summary>
-    /// インストール済みツールの表示言語とフォントを変更する。ツールは次回の起動時に読み込む。
+    /// インストール済みツールの表示言語とフォントを変更する。テーマも現在のものを書き直す。ツールは次回の起動時に読み込む。
     /// </summary>
     public void ApplySettings(ToolDefinition tool, ToolPreferences preferences)
     {
@@ -158,8 +161,21 @@ public sealed class ToolInstaller
         }
         var fontId = NormalizeFont(tool, preferences);
         var normalized = preferences with { FontId = fontId };
-        ToolSettingsFile.Write(current.InstallDirectory, tool, normalized, _resolveFontPath(fontId));
+        ToolSettingsFile.Write(current.InstallDirectory, tool, normalized, _resolveFontPath(fontId), _currentTheme());
         _installed.Set(current with { Language = normalized.Language, FontId = fontId });
+    }
+
+    /// <summary>
+    /// テーマを変えたときなどに、インストール済みのツールの設定ファイルを今の設定で書き直す。
+    /// </summary>
+    public void RefreshSettings(ToolDefinition tool)
+    {
+        ArgumentNullException.ThrowIfNull(tool);
+        if (!tool.SupportsLanguage || _installed.Find(tool.Id) is not { } current)
+        {
+            return;
+        }
+        ApplySettings(tool, ResolvePreferences(tool, current, null)!);
     }
 
     public void Uninstall(ToolDefinition tool)

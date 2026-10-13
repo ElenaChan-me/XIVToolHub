@@ -3,31 +3,36 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:XIVToolHub.App.ViewModels"
         Title="XIVToolHub - FF14 外部ツール管理"
-        Width="1040" Height="760" MinWidth="760" MinHeight="520"
+        Width="1120" Height="760" MinWidth="760" MinHeight="520"
         WindowStartupLocation="CenterScreen"
         Style="{StaticResource WindowStyle}">
     <DockPanel>
-        <Border DockPanel.Dock="Top" Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
             <WrapPanel>
                 <Button Content="選択したツールをインストール・更新" Command="{Binding InstallSelectedCommand}" Style="{StaticResource PrimaryButton}" />
                 <Button Content="選択したツールをアンインストール" Command="{Binding UninstallSelectedCommand}" />
                 <Button Content="最新版を確認" Command="{Binding RefreshCommand}" />
-                <Border Width="1" Margin="6,4,12,4" Background="{StaticResource BorderBrush}" />
+                <Border Width="1" Margin="6,4,12,4" Background="{DynamicResource BorderBrush}" />
                 <Button Content="すべて選択" Command="{Binding SelectAllCommand}" />
                 <Button Content="選択を解除" Command="{Binding ClearSelectionCommand}" />
-                <Border Width="1" Margin="6,4,12,4" Background="{StaticResource BorderBrush}" />
+                <Border Width="1" Margin="6,4,12,4" Background="{DynamicResource BorderBrush}" />
                 <Button Content="ツールを追加" Command="{Binding AddToolCommand}" />
                 <Button Content="GitHub トークン" Command="{Binding TokenSettingsCommand}" />
             </WrapPanel>
         </Border>
 
-        <Border DockPanel.Dock="Bottom" Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,5">
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,5">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Text="処理中..." Foreground="{StaticResource SubTextBrush}"
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0">
+                    <TextBlock Text="テーマ" Style="{StaticResource FieldLabel}" Margin="0,0,6,0" />
+                    <ComboBox ItemsSource="{Binding Themes}" DisplayMemberPath="DisplayName" SelectedValuePath="Code"
+                              SelectedValue="{Binding Theme}" Width="110" AutomationProperties.Name="テーマ" />
+                </StackPanel>
+                <TextBlock DockPanel.Dock="Right" Text="処理中..." Foreground="{DynamicResource SubTextBrush}"
                            Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
-                <TextBlock Foreground="{StaticResource SubTextBrush}" TextTrimming="CharacterEllipsis">
+                <TextBlock Foreground="{DynamicResource SubTextBrush}" TextTrimming="CharacterEllipsis">
                     <Run Text="保存先:" /> <Run Text="{Binding DataDirectory, Mode=OneWay}" />
                 </TextBlock>
             </DockPanel>
@@ -41,11 +46,11 @@
             </Grid.RowDefinitions>
 
             <ListBox ItemsSource="{Binding Tools}" SelectedItem="{Binding SelectedItem}"
-                     HorizontalContentAlignment="Stretch" BorderBrush="{StaticResource BorderBrush}"
+                     HorizontalContentAlignment="Stretch" BorderBrush="{DynamicResource BorderBrush}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="ツール一覧">
                 <ListBox.ItemTemplate>
                     <DataTemplate DataType="{x:Type vm:ToolItemViewModel}">
-                        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="6,10">
+                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="6,10">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -57,16 +62,15 @@
                                 <StackPanel Grid.Column="1">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" />
-                                        <Border Background="#EEEEEB" CornerRadius="3" Padding="6,1" Margin="10,0,0,0" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding KindLabel}" FontSize="11" Foreground="{StaticResource SubTextBrush}" />
+                                        <Border Style="{StaticResource Chip}" Margin="10,0,0,0">
+                                            <TextBlock Text="{Binding KindLabel}" FontSize="11" Foreground="{DynamicResource SubTextBrush}" />
                                         </Border>
-                                        <Border CornerRadius="3" Padding="6,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                        <Border Margin="6,0,0,0">
                                             <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="#EEEEEB" />
+                                                <Style TargetType="Border" BasedOn="{StaticResource Chip}">
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding State}" Value="UpdateAvailable">
-                                                            <Setter Property="Background" Value="{StaticResource UpdateBackground}" />
+                                                            <Setter Property="Background" Value="{DynamicResource UpdateBackground}" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -74,13 +78,13 @@
                                             <TextBlock Text="{Binding StateLabel}" FontSize="11">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="{StaticResource SubTextBrush}" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource SubTextBrush}" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding State}" Value="UpdateAvailable">
-                                                                <Setter Property="Foreground" Value="{StaticResource UpdateBrush}" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource UpdateBrush}" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding State}" Value="Installed">
-                                                                <Setter Property="Foreground" Value="{StaticResource InstalledBrush}" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource InstalledBrush}" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -105,7 +109,7 @@
                                         <TextBlock Text="{Binding ProgressText}" Style="{StaticResource HintText}" />
                                         <ProgressBar Value="{Binding Progress, Mode=OneWay}" Maximum="1" Height="6" Margin="0,3,0,0" />
                                     </StackPanel>
-                                    <TextBlock Text="{Binding Error}" Foreground="{StaticResource ErrorText}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                    <TextBlock Text="{Binding Error}" Foreground="{DynamicResource ErrorText}" TextWrapping="Wrap" Margin="0,4,0,0"
                                                Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,0,0,0">
@@ -143,7 +147,7 @@
 
             <DockPanel Grid.Row="2">
                 <TextBlock DockPanel.Dock="Top" Text="ログ" FontWeight="SemiBold" Margin="0,0,0,4" />
-                <ListBox ItemsSource="{Binding Log}" BorderBrush="{StaticResource BorderBrush}" FontSize="12"
+                <ListBox ItemsSource="{Binding Log}" BorderBrush="{DynamicResource BorderBrush}" FontSize="12"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="ログ">
                     <ListBox.ItemTemplate>
                         <DataTemplate>

@@ -7,7 +7,7 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest</AnalysisLevel>
     <Deterministic>true</Deterministic>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>Nakagawa</Authors>
     <Product>XIVToolHub</Product>
     <SatelliteResourceLanguages>ja</SatelliteResourceLanguages>

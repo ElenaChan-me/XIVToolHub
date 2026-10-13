@@ -32,12 +32,12 @@
 
         <ListBox ItemsSource="{Binding Fonts}" SelectedItem="{Binding SelectedFont}"
                  IsEnabled="{Binding IsFontEnabled}" HorizontalContentAlignment="Stretch"
-                 BorderBrush="{StaticResource BorderBrush}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 BorderBrush="{DynamicResource BorderBrush}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                  Visibility="{Binding SupportsFont, Converter={StaticResource BoolToVisibility}}"
                  AutomationProperties.Name="フォント一覧">
             <ListBox.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:FontItemViewModel}">
-                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="4,8">
+                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="4,8">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -51,7 +51,7 @@
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource HintText}">
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsAvailable}" Value="True">
-                                                        <Setter Property="Foreground" Value="{StaticResource InstalledBrush}" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource InstalledBrush}" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -59,7 +59,7 @@
                                     </TextBlock>
                                 </StackPanel>
                                 <TextBlock Text="{Binding Detail}" Style="{StaticResource HintText}" Margin="0,2,0,0" />
-                                <TextBlock Text="{Binding Warning}" Foreground="{StaticResource ErrorText}" TextWrapping="Wrap" Margin="0,2,0,0"
+                                <TextBlock Text="{Binding Warning}" Foreground="{DynamicResource ErrorText}" TextWrapping="Wrap" Margin="0,2,0,0"
                                            Visibility="{Binding HasWarning, Converter={StaticResource BoolToVisibility}}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="10,0,0,0"

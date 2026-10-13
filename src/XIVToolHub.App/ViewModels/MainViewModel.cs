@@ -6,6 +6,7 @@ using XIVToolHub.Core;
 using XIVToolHub.Core.Catalog;
 using XIVToolHub.Core.Fonts;
 using XIVToolHub.Core.Install;
+using XIVToolHub.Core.Models;
 using XIVToolHub.Core.Storage;
 
 namespace XIVToolHub.App.ViewModels;
@@ -19,15 +20,21 @@ public sealed class MainViewModel : ObservableObject
     private readonly ToolInstaller _installer;
     private readonly ToolLauncher _launcher;
     private readonly FontStore _fonts;
+    private readonly HubSettingsStore _settings;
+    private readonly Action<string> _applyTheme;
     private readonly HubPaths _paths;
     private readonly IDialogService _dialogs;
     private readonly TimeProvider _clock;
     private bool _isBusy;
     private ToolItemViewModel? _selectedItem;
 
-    public MainViewModel(ToolCatalog catalog, InstalledStore installed, ToolInstaller installer, ToolLauncher launcher, FontStore fonts, HubPaths paths, IDialogService dialogs, TimeProvider clock)
+    /// <param name="applyTheme">画面の配色を切り替える処理。</param>
+    public MainViewModel(ToolCatalog catalog, InstalledStore installed, ToolInstaller installer, ToolLauncher launcher, FontStore fonts, HubSettingsStore settings,
+        Action<string> applyTheme, HubPaths paths, IDialogService dialogs, TimeProvider clock)
     {
         _fonts = fonts;
+        _settings = settings;
+        _applyTheme = applyTheme;
         _catalog = catalog;
         _installed = installed;
         _installer = installer;
@@ -78,6 +85,46 @@ public sealed class MainViewModel : ObservableObject
             {
                 CommandManager.InvalidateRequerySuggested();
             }
+        }
+    }
+
+    public IReadOnlyList<ThemeOption> Themes => HubThemes.All;
+
+    /// <summary>
+    /// ハブとツールで共通のテーマ。変えるとインストール済みのツールの設定ファイルも書き直す。
+    /// </summary>
+    public string Theme
+    {
+        get => _settings.Theme;
+        set
+        {
+            if (value == _settings.Theme || !HubThemes.IsSupported(value))
+            {
+                return;
+            }
+            try
+            {
+                _settings.SetTheme(value);
+            }
+            catch (HubException ex)
+            {
+                _dialogs.ShowError(ex.Message);
+                return;
+            }
+            _applyTheme(value);
+            OnPropertyChanged();
+            foreach (var item in Tools.Where(t => t.CanConfigure))
+            {
+                try
+                {
+                    _installer.RefreshSettings(item.Definition);
+                }
+                catch (HubException ex)
+                {
+                    AddLog($"{item.Name}: テーマを反映できませんでした。{ex.Message}");
+                }
+            }
+            AddLog($"テーマを「{HubThemes.All.First(t => t.Code == value).DisplayName}」にしました。ツールには次回の起動時に反映されます。");
         }
     }
 

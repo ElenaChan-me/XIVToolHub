@@ -61,7 +61,7 @@ For Triggevent, start the OverlayPlugin WebSocket server in ACT.
 Glamaholic JP と Triggevent JP は、初めてインストールするときに表示言語（日本語・English・한국어・简体中文）を選びます。
 インストール後は、ツールの「表示設定」から言語を変更でき、日本語の場合は 30 種類の追加フォントから選べます。
 
-- 選んだ設定は、ツールの起動ファイル・DLL と同じフォルダの `xivtoolhub-settings.json`（`{"language": "ja", "fontPath": "..."}`）に書き込み、ツールは起動時に読み込みます。更新しても設定は引き継ぎます。
+- 選んだ設定は、ツールの起動ファイル・DLL と同じフォルダの `xivtoolhub-settings.json`（`{"language": "ja", "fontPath": "...", "theme": "dark"}`）に書き込み、ツールは起動時に読み込みます。更新しても設定は引き継ぎます。
 - フォントは同梱していません。公式に直接ダウンロードできるもの（源暎ぽっぷる、ふんわりラウンド、ポプらむ☆キュート、はちまるポップ、モッチーポップ）は配布元から取得し、それ以外は公式ページで入手したファイル（.ttf / .otf / .ttc または ZIP）を取り込みます。
 - 取得したフォントは `%LOCALAPPDATA%\XIVToolHub\fonts\<ID>` に置きます。ファイルの先頭のバイトでフォントであることを確認してから取り込みます。
 - 収録文字が少ないフォント（かなのみ等）でも、足りない文字は標準フォントで表示します。
@@ -70,6 +70,13 @@ Glamaholic JP と Triggevent JP は、初めてインストールするときに
 Glamaholic JP and Triggevent JP ask for a display language on first install. Afterwards, the language can be changed from the tool's settings, and for Japanese one of 30 additional fonts can be selected.
 The choice is written to `xivtoolhub-settings.json` next to the tool's entry file and kept across updates.
 Fonts are not bundled: those with an official direct download are fetched from the author's site, the others are imported from a file downloaded from the official page. Missing glyphs fall back to the default font. Please check each font's license on its official page.
+
+## テーマ / Themes
+
+画面下部の「テーマ」で、配色を「黒・赤」と「白・水色」から選べます。選んだテーマは XIVToolHub にすぐ反映され、Glamaholic JP と Triggevent JP にも `xivtoolhub-settings.json` の `theme`（`dark` / `light`）で伝わり、次回の起動時から同じ配色で表示されます。
+ハブから起動した Triggevent JP では、テーマを XIVToolHub でまとめて管理するため、Triggevent 側のテーマ選択は表示しません。
+
+Choose "Black / Red" or "White / Light Blue" at the bottom of the window. The theme is applied to XIVToolHub immediately and passed to Glamaholic JP and Triggevent JP through the `theme` field of `xivtoolhub-settings.json`, so all tools share the same colors from their next start.
 
 ## Dalamud プラグインの扱い / Dalamud plugins
 
@@ -99,6 +106,7 @@ Dev mode is enabled if needed, a backup of `dalamudConfig.json` is made before e
 | `%LOCALAPPDATA%\XIVToolHub\installed.json` | インストール記録・表示言語・フォント / Install records, language and font |
 | `%LOCALAPPDATA%\XIVToolHub\fonts\` | 取得した追加フォント / Downloaded or imported fonts |
 | `%APPDATA%\XIVToolHub\catalog.json` | 追加したツールの定義 / User-added tools |
+| `%APPDATA%\XIVToolHub\settings.json` | テーマ / Theme |
 | 資格情報マネージャー `XIVToolHub:github-token` | GitHub トークン / GitHub token |
 
 ## 開発 / Development

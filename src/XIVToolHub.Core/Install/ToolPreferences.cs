@@ -21,7 +21,7 @@ public sealed record ToolPreferences(string Language, string? FontId)
 }
 
 /// <summary>
-/// ツールに表示言語とフォントを伝える設定ファイル。ツールの起動ファイル・DLL と同じフォルダに置く。
+/// ツールに表示言語・フォント・テーマを伝える設定ファイル。ツールの起動ファイル・DLL と同じフォルダに置く。
 /// </summary>
 public static class ToolSettingsFile
 {
@@ -40,7 +40,7 @@ public static class ToolSettingsFile
         return System.IO.Path.Combine(System.IO.Path.GetDirectoryName(entry)!, FileName);
     }
 
-    public static void Write(string installDirectory, ToolDefinition tool, ToolPreferences preferences, string? fontPath)
+    public static void Write(string installDirectory, ToolDefinition tool, ToolPreferences preferences, string? fontPath, string theme)
     {
         ArgumentNullException.ThrowIfNull(preferences);
         if (!ToolLanguages.IsSupported(preferences.Language) || !tool.Languages.Contains(preferences.Language))
@@ -48,11 +48,12 @@ public static class ToolSettingsFile
             throw new HubException($"{tool.Name} はこの言語に対応していません。");
         }
         // フォントは日本語表示のときだけ使う
-        var content = new SettingsContent(preferences.Language, preferences.Language == ToolLanguages.Japanese ? fontPath : null);
+        var content = new SettingsContent(preferences.Language, preferences.Language == ToolLanguages.Japanese ? fontPath : null, HubThemes.Normalize(theme));
         AtomicFile.WriteAllText(PathFor(installDirectory, tool), JsonSerializer.Serialize(content, Options));
     }
 
     private sealed record SettingsContent(
         [property: JsonPropertyName("language")] string Language,
-        [property: JsonPropertyName("fontPath")] string? FontPath);
+        [property: JsonPropertyName("fontPath")] string? FontPath,
+        [property: JsonPropertyName("theme")] string Theme);
 }

@@ -51,9 +51,11 @@ public partial class App : Application
         _fontHttp = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
         _fontHttp.DefaultRequestHeaders.UserAgent.ParseAdd("XIVToolHub");
         var fonts = new FontStore(paths, _fontHttp);
-        var installer = new ToolInstaller(paths, github, installed, dalamud, act, gameDetector, clock, fonts.ResolvePath);
+        var settings = new HubSettingsStore(paths);
+        ThemeManager.Apply(settings.Theme);
+        var installer = new ToolInstaller(paths, github, installed, dalamud, act, gameDetector, clock, fonts.ResolvePath, () => settings.Theme);
         var dialogs = new WpfDialogService(github, tokenStore);
-        var viewModel = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), fonts, paths, dialogs, clock);
+        var viewModel = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), fonts, settings, ThemeManager.Apply, paths, dialogs, clock);
 
         var window = new MainWindow(viewModel);
         MainWindow = window;

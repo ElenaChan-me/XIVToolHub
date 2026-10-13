@@ -41,7 +41,7 @@
 
             <TextBlock Grid.Row="2" Text="リリースのファイル" Style="{StaticResource FieldLabel}" VerticalAlignment="Top" Margin="0,4,12,0" />
             <ListBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Assets}" SelectedItem="{Binding SelectedAsset}"
-                     Height="90" BorderBrush="{StaticResource BorderBrush}" />
+                     Height="90" BorderBrush="{DynamicResource BorderBrush}" />
 
             <TextBlock Grid.Row="4" Text="ファイル名（パターン）" Style="{StaticResource FieldLabel}" />
             <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding AssetPattern, UpdateSourceTrigger=PropertyChanged}"
@@ -66,7 +66,7 @@
             <TextBox Grid.Row="14" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" />
         </Grid>
 
-        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,12,0,0" Foreground="{StaticResource SubTextBrush}" />
+        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,12,0,0" Foreground="{DynamicResource SubTextBrush}" />
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button Content="追加" IsDefault="True" Style="{StaticResource PrimaryButton}" Click="OnAddClick" />
