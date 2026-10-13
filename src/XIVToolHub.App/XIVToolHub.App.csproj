@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>XIVToolHub.App</RootNamespace>
+    <AssemblyName>XIVToolHub</AssemblyName>
+    <AssemblyTitle>XIVToolHub</AssemblyTitle>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\XIVToolHub.Core\XIVToolHub.Core.csproj" />
+  </ItemGroup>
+
+</Project>
