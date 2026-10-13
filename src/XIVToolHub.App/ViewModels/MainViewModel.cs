@@ -113,7 +113,18 @@ public sealed class MainViewModel : ObservableObject
 
     private async Task InstallSelectedAsync()
     {
-        var targets = Tools.Where(t => t.IsSelected).ToList();
+        List<ToolItemViewModel> targets;
+        try
+        {
+            // 依存されるツールから順に処理する
+            var order = _catalog.ResolveInstallOrder(Tools.Where(t => t.IsSelected).Select(t => t.Id));
+            targets = [.. order.Select(d => Tools.First(t => t.Id == d.Id))];
+        }
+        catch (HubException ex)
+        {
+            _dialogs.ShowError(ex.Message);
+            return;
+        }
         if (targets.Count == 0)
         {
             return;
@@ -272,16 +283,45 @@ public sealed class MainViewModel : ObservableObject
     private void ReloadTools()
     {
         var previous = Tools.ToDictionary(t => t.Id);
+        foreach (var item in Tools)
+        {
+            item.PropertyChanged -= OnToolPropertyChanged;
+        }
         Tools.Clear();
         foreach (var definition in _catalog.Tools)
         {
-            var item = new ToolItemViewModel(definition, _installed.Find(definition.Id));
+            var dependencyNames = definition.DependsOn.Select(id => _catalog.Find(id)?.Name ?? id);
+            var item = new ToolItemViewModel(definition, _installed.Find(definition.Id))
+            {
+                DependsOnText = string.Join("、", dependencyNames),
+            };
             if (previous.TryGetValue(definition.Id, out var old))
             {
                 item.LatestVersion = old.LatestVersion;
                 item.IsSelected = old.IsSelected;
             }
+            item.PropertyChanged += OnToolPropertyChanged;
             Tools.Add(item);
+        }
+    }
+
+    /// <summary>
+    /// ツールを選んだら、そのツールが必要とするツールも選ぶ。依存ツールなしでは動かないため。
+    /// </summary>
+    private void OnToolPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(ToolItemViewModel.IsSelected) || sender is not ToolItemViewModel { IsSelected: true } item)
+        {
+            return;
+        }
+        foreach (var dependencyId in item.Definition.DependsOn)
+        {
+            var dependency = Tools.FirstOrDefault(t => t.Id == dependencyId);
+            if (dependency is { IsSelected: false })
+            {
+                dependency.IsSelected = true;
+                AddLog($"{item.Name} に必要な {dependency.Name} も選択しました。");
+            }
         }
     }
 

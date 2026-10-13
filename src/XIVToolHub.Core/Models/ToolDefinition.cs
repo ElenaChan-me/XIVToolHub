@@ -7,6 +7,9 @@ public enum ToolKind
 
     /// <summary>単体で起動するアプリ。</summary>
     Application,
+
+    /// <summary>XIVToolHub が管理する ACT（Advanced Combat Tracker）に読み込ませるプラグイン。</summary>
+    ActPlugin,
 }
 
 /// <summary>
@@ -48,6 +51,12 @@ public sealed record ToolDefinition
 
     /// <summary>起動・利用に必要なものなど、利用者への補足。</summary>
     public string Notes { get; init; } = "";
+
+    /// <summary>先にインストールしておく必要があるツールの ID。</summary>
+    public IReadOnlyList<string> DependsOn { get; init; } = [];
+
+    /// <summary>アプリを起動するときの引数。</summary>
+    public string LaunchArguments { get; init; } = "";
 
     /// <summary>アプリに同梱した定義か。同梱定義はカタログから削除できない。</summary>
     public bool IsBuiltIn { get; init; }

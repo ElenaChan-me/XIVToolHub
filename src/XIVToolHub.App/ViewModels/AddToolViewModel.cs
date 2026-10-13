@@ -33,6 +33,7 @@ public sealed partial class AddToolViewModel : ObservableObject
     [
         new(ToolKind.Application, "アプリ（単体で起動）"),
         new(ToolKind.DalamudPlugin, "Dalamud プラグイン"),
+        new(ToolKind.ActPlugin, "ACT プラグイン"),
     ];
 
     public ObservableCollection<string> Assets { get; } = [];
@@ -103,6 +104,8 @@ public sealed partial class AddToolViewModel : ObservableObject
             Kind = _kind,
             Source = new GitHubSource { Owner = owner, Repo = repo, AssetPattern = _assetPattern.Trim() },
             EntryFile = _entryFile.Trim().Replace('\\', '/'),
+            // ACT プラグインは XIVToolHub が管理する ACT に登録するため、ACT を先に入れる
+            DependsOn = _kind == ToolKind.ActPlugin ? [ToolCatalog.ActToolId] : [],
         };
         var errors = ToolCatalog.Validate(definition);
         if (errors.Count > 0)

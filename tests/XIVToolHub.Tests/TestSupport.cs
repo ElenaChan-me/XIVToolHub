@@ -49,11 +49,11 @@ internal sealed class ManualClock : TimeProvider
     public void Advance() => Now = Now.AddSeconds(1);
 }
 
-internal sealed class FakeGameDetector : IGameProcessDetector
+internal sealed class FakeGameDetector : IProcessDetector
 {
     public bool Running { get; set; }
 
-    public bool IsGameRunning() => Running;
+    public bool IsRunning() => Running;
 }
 
 /// <summary>GitHub API の代わりに決まった応答を返す。</summary>

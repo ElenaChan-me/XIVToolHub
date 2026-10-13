@@ -11,7 +11,12 @@ namespace XIVToolHub.Core.Catalog;
 /// </summary>
 public sealed partial class ToolCatalog
 {
+    /// <summary>ACT プラグインの登録先になる ACT 本体の ID。</summary>
+    public const string ActToolId = "act";
+
     private const string BuiltInResourceName = "XIVToolHub.Core.builtin-catalog.json";
+    private const int MaxDependencies = 10;
+    private const int ArgumentsMaxLength = 200;
     private const int NameMaxLength = 60;
     private const int DescriptionMaxLength = 500;
     private const int NotesMaxLength = 300;
@@ -113,16 +118,71 @@ public sealed partial class ToolCatalog
         {
             errors.Add("起動ファイル・DLL は、展開先フォルダ内の相対パスで指定してください。");
         }
-        else if (definition.Kind == ToolKind.DalamudPlugin && !entry.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+        else if (definition.Kind is ToolKind.DalamudPlugin or ToolKind.ActPlugin && !entry.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
         {
-            errors.Add("Dalamud プラグインは DLL ファイルを指定してください。");
+            errors.Add("プラグインは DLL ファイルを指定してください。");
         }
         else if (definition.Kind == ToolKind.Application && !entry.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
         {
             errors.Add("アプリは実行ファイル（.exe）を指定してください。");
         }
 
+        var dependsOn = definition.DependsOn ?? [];
+        if (dependsOn.Count > MaxDependencies || dependsOn.Any(d => !IdPattern().IsMatch(d ?? "") || d == definition.Id))
+        {
+            errors.Add("依存するツールの指定が不正です。");
+        }
+        if (definition.Kind == ToolKind.ActPlugin && !dependsOn.Contains(ActToolId))
+        {
+            errors.Add($"ACT プラグインは ACT（{ActToolId}）に依存させてください。");
+        }
+
+        var arguments = definition.LaunchArguments ?? "";
+        if (arguments.Length > ArgumentsMaxLength || arguments.Any(char.IsControl) || arguments.Contains('"', StringComparison.Ordinal))
+        {
+            errors.Add("起動時の引数が不正です。");
+        }
+
         return errors;
+    }
+
+    /// <summary>
+    /// 指定したツールと、その依存ツールをすべて含めて、依存される側が先になる順に並べる。
+    /// </summary>
+    public IReadOnlyList<ToolDefinition> ResolveInstallOrder(IEnumerable<string> ids)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        var ordered = new List<ToolDefinition>();
+        var done = new HashSet<string>();
+        var visiting = new HashSet<string>();
+
+        void Visit(string id, string? requiredBy)
+        {
+            if (done.Contains(id))
+            {
+                return;
+            }
+            var tool = Find(id) ?? throw new HubException(requiredBy is null
+                ? $"ツール「{id}」がカタログにありません。"
+                : $"「{requiredBy}」が必要とするツール「{id}」がカタログにありません。");
+            if (!visiting.Add(id))
+            {
+                throw new HubException($"ツール「{id}」の依存関係が循環しています。");
+            }
+            foreach (var dependency in tool.DependsOn)
+            {
+                Visit(dependency, tool.Name);
+            }
+            visiting.Remove(id);
+            done.Add(id);
+            ordered.Add(tool);
+        }
+
+        foreach (var id in ids)
+        {
+            Visit(id, null);
+        }
+        return ordered;
     }
 
     /// <summary>

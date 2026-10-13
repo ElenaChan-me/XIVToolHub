@@ -1,3 +1,4 @@
+using XIVToolHub.Core.Act;
 using XIVToolHub.Core.Catalog;
 using XIVToolHub.Core.Dalamud;
 using XIVToolHub.Core.GitHub;
@@ -20,15 +21,17 @@ public sealed class ToolInstaller
     private readonly GitHubReleaseClient _github;
     private readonly InstalledStore _installed;
     private readonly DalamudConfigEditor _dalamud;
-    private readonly IGameProcessDetector _gameDetector;
+    private readonly ActConfigEditor _act;
+    private readonly IProcessDetector _gameDetector;
     private readonly TimeProvider _clock;
 
-    public ToolInstaller(HubPaths paths, GitHubReleaseClient github, InstalledStore installed, DalamudConfigEditor dalamud, IGameProcessDetector gameDetector, TimeProvider clock)
+    public ToolInstaller(HubPaths paths, GitHubReleaseClient github, InstalledStore installed, DalamudConfigEditor dalamud, ActConfigEditor act, IProcessDetector gameDetector, TimeProvider clock)
     {
         _paths = paths;
         _github = github;
         _installed = installed;
         _dalamud = dalamud;
+        _act = act;
         _gameDetector = gameDetector;
         _clock = clock;
     }
@@ -46,6 +49,11 @@ public sealed class ToolInstaller
         if (tool.Kind == ToolKind.DalamudPlugin)
         {
             EnsurePluginEditable();
+        }
+        else if (tool.Kind == ToolKind.ActPlugin)
+        {
+            // ACT 起動中は DLL が使用中で入れ替えられず、設定も終了時に上書きされる
+            _act.EnsureEditable();
         }
 
         Report("リリース情報を確認しています");
@@ -81,9 +89,14 @@ public sealed class ToolInstaller
 
             ReplaceDirectory(stagingPath, installDirectory, () =>
             {
-                if (tool.Kind == ToolKind.DalamudPlugin)
+                switch (tool.Kind)
                 {
-                    devModeEnabled = _dalamud.Register(entryPath).DevModeEnabled;
+                    case ToolKind.DalamudPlugin:
+                        devModeEnabled = _dalamud.Register(entryPath).DevModeEnabled;
+                        break;
+                    case ToolKind.ActPlugin:
+                        _act.Register(entryPath);
+                        break;
                 }
             });
 
@@ -93,7 +106,7 @@ public sealed class ToolInstaller
                 Version = release.TagName,
                 AssetName = asset.Name,
                 InstallDirectory = installDirectory,
-                RegisteredPluginPath = tool.Kind == ToolKind.DalamudPlugin ? entryPath : null,
+                RegisteredPluginPath = tool.Kind is ToolKind.DalamudPlugin or ToolKind.ActPlugin ? entryPath : null,
                 InstalledAt = _clock.GetLocalNow(),
             });
 
@@ -115,8 +128,19 @@ public sealed class ToolInstaller
 
         if (current?.RegisteredPluginPath is { } pluginPath)
         {
-            EnsurePluginEditable();
-            _dalamud.Unregister(pluginPath);
+            if (tool.Kind == ToolKind.ActPlugin)
+            {
+                // ACT ごと削除済みなら設定ファイルも残っていないので、登録の解除は不要
+                if (_act.ActInstalled)
+                {
+                    _act.Unregister(pluginPath);
+                }
+            }
+            else
+            {
+                EnsurePluginEditable();
+                _dalamud.Unregister(pluginPath);
+            }
         }
 
         if (Directory.Exists(installDirectory))
@@ -146,7 +170,7 @@ public sealed class ToolInstaller
             throw new HubException(
                 $"Dalamud の設定ファイルが見つかりません。XIVLauncher で一度ゲームを起動してから、もう一度お試しください。\n{_dalamud.ConfigPath}");
         }
-        if (_gameDetector.IsGameRunning())
+        if (_gameDetector.IsRunning())
         {
             throw new HubException("ゲームの起動中は Dalamud プラグインを変更できません。ゲームを終了してからお試しください。");
         }

@@ -1,6 +1,7 @@
 using XIVToolHub.App.Services;
 using XIVToolHub.App.ViewModels;
 using XIVToolHub.Core;
+using XIVToolHub.Core.Act;
 using XIVToolHub.Core.Catalog;
 using XIVToolHub.Core.Dalamud;
 using XIVToolHub.Core.GitHub;
@@ -100,7 +101,7 @@ public class AppTests
         var game = new FakeGameDetector();
         var github = new GitHubReleaseClient(new HttpClient(handler) { BaseAddress = new Uri(GitHubReleaseClient.ApiBaseUrl) }, () => null);
         var installed = new InstalledStore(paths);
-        var installer = new ToolInstaller(paths, github, installed, new DalamudConfigEditor(paths.DalamudConfigPath, game, clock), game, clock);
+        var installer = new ToolInstaller(paths, github, installed, new DalamudConfigEditor(paths.DalamudConfigPath, game, clock), new ActConfigEditor(paths.ToolDirectory(ToolCatalog.ActToolId), new FakeGameDetector(), clock), game, clock);
         var dialogs = new RecordingDialogs();
         var vm = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), paths, dialogs, clock);
 

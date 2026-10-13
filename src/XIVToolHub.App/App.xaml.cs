@@ -4,6 +4,7 @@ using XIVToolHub.App.Services;
 using XIVToolHub.App.ViewModels;
 using XIVToolHub.App.Views;
 using XIVToolHub.Core;
+using XIVToolHub.Core.Act;
 using XIVToolHub.Core.Catalog;
 using XIVToolHub.Core.Dalamud;
 using XIVToolHub.Core.GitHub;
@@ -26,7 +27,7 @@ public partial class App : Application
         var tokenStore = new CredentialTokenStore();
         _http = GitHubReleaseClient.CreateHttpClient();
         var github = new GitHubReleaseClient(_http, () => ReadToken(tokenStore));
-        var gameDetector = new GameProcessDetector();
+        var gameDetector = ProcessNameDetector.Game;
 
         ToolCatalog catalog;
         InstalledStore installed;
@@ -43,7 +44,8 @@ public partial class App : Application
         }
 
         var dalamud = new DalamudConfigEditor(paths.DalamudConfigPath, gameDetector, clock);
-        var installer = new ToolInstaller(paths, github, installed, dalamud, gameDetector, clock);
+        var act = new ActConfigEditor(paths.ToolDirectory(ToolCatalog.ActToolId), ProcessNameDetector.Act, clock);
+        var installer = new ToolInstaller(paths, github, installed, dalamud, act, gameDetector, clock);
         var dialogs = new WpfDialogService(github, tokenStore);
         var viewModel = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), paths, dialogs, clock);
 
