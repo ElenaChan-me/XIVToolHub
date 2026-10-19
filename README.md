@@ -27,6 +27,10 @@ Third-party tools are prohibited by the FINAL FANTASY XIV Terms of Service and m
   Store a GitHub token for private repositories in Windows Credential Manager
 - Glamaholic Plus・Triggevent Plus の表示言語（日本語・英語・韓国語・中国語）をインストール時に選択し、日本語の場合は後から追加フォントを選択
   Choose the display language (Japanese, English, Korean, Chinese) of the localized tools at install time, and an additional font for Japanese later
+- パッチの対応状況の表示。インストール済みのゲームのバージョン（`ffxivgame.ver`）を、Dalamud の配布サーバーが示す対応バージョンと、FFXIV_ACT_Plugin の最新リリースの日付と比べ、パッチ直後にまだ対応していないものを知らせます
+  Patch status: compares the installed game version with the version Dalamud supports and with the latest FFXIV_ACT_Plugin release date, and warns when one has not caught up yet
+- Triggevent Plus のボイスパックのインストール。インストールしたパックは Triggevent Plus の一覧に出て、最初のものはそのまま使われます
+  Install voice packs for Triggevent Plus; installed packs appear in Triggevent Plus and the first one is used automatically
 
 ### 同梱カタログ / Built-in catalog
 
@@ -37,6 +41,7 @@ Third-party tools are prohibited by the FINAL FANTASY XIV Terms of Service and m
 | FFXIV_ACT_Plugin | ACT プラグイン | ravahn/FFXIV_ACT_Plugin | ACT |
 | OverlayPlugin | ACT プラグイン | OverlayPlugin/OverlayPlugin | ACT |
 | Triggevent Plus | アプリ / Application | ElenaChan-me/Triggevent-Plus | ACT, FFXIV_ACT_Plugin, OverlayPlugin |
+| Triggevent Plus ボイスパック（みあ・つきの） | ボイスパック / Voice pack | ElenaChan-me/Triggevent-VoiceGen（Private） | Triggevent Plus |
 
 ツールを選ぶと、必要なツールも自動で選択され、必要とされる側から順にインストールされます。
 OverlayPlugin は、更新が止まっている ngld 版ではなく、後継の OverlayPlugin/OverlayPlugin を使います。

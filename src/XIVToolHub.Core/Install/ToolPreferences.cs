@@ -40,7 +40,9 @@ public static class ToolSettingsFile
         return System.IO.Path.Combine(System.IO.Path.GetDirectoryName(entry)!, FileName);
     }
 
-    public static void Write(string installDirectory, ToolDefinition tool, ToolPreferences preferences, string? fontPath, string theme)
+    /// <param name="voicePacks">インストール済みのボイスパックのフォルダ。Triggevent Plus が一覧に出す。</param>
+    public static void Write(string installDirectory, ToolDefinition tool, ToolPreferences preferences, string? fontPath, string theme,
+        IReadOnlyList<string>? voicePacks = null)
     {
         ArgumentNullException.ThrowIfNull(preferences);
         if (!ToolLanguages.IsSupported(preferences.Language) || !tool.Languages.Contains(preferences.Language))
@@ -48,12 +50,14 @@ public static class ToolSettingsFile
             throw new HubException($"{tool.Name} はこの言語に対応していません。");
         }
         // フォントは日本語表示のときだけ使う
-        var content = new SettingsContent(preferences.Language, preferences.Language == ToolLanguages.Japanese ? fontPath : null, HubThemes.Normalize(theme));
+        var content = new SettingsContent(preferences.Language, preferences.Language == ToolLanguages.Japanese ? fontPath : null, HubThemes.Normalize(theme),
+            voicePacks ?? []);
         AtomicFile.WriteAllText(PathFor(installDirectory, tool), JsonSerializer.Serialize(content, Options));
     }
 
     private sealed record SettingsContent(
         [property: JsonPropertyName("language")] string Language,
         [property: JsonPropertyName("fontPath")] string? FontPath,
-        [property: JsonPropertyName("theme")] string Theme);
+        [property: JsonPropertyName("theme")] string Theme,
+        [property: JsonPropertyName("voicePacks")] IReadOnlyList<string> VoicePacks);
 }

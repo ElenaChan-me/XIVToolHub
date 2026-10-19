@@ -76,5 +76,35 @@
     "notes": "ACT・FFXIV_ACT_Plugin・OverlayPlugin も一緒にインストールされます。OverlayPlugin の WebSocket サーバーを開始してから起動してください。",
     "languages": ["ja", "en", "ko", "zh"],
     "supportsFont": true
+  },
+  {
+    "id": "voicepack-mia",
+    "name": "Triggevent Plus ボイスパック（みあ）",
+    "description": "Triggevent Plus の読み上げを、落ち着いた声で作った音声に置き換えるボイスパック。",
+    "kind": "voicePack",
+    "source": {
+      "owner": "ElenaChan-me",
+      "repo": "Triggevent-VoiceGen",
+      "assetPattern": "voicepack-mia.zip",
+      "includePrerelease": false
+    },
+    "entryFile": "manifest.json",
+    "dependsOn": [ "triggevent-jp" ],
+    "notes": "インストール後、Triggevent Plus の「Voice Pack」タブで選べます。配布元は Private リポジトリのため GitHub トークンが必要です。"
+  },
+  {
+    "id": "voicepack-tsukino",
+    "name": "Triggevent Plus ボイスパック（つきの）",
+    "description": "Triggevent Plus の読み上げを、ダウナー系の声で作った音声に置き換えるボイスパック。",
+    "kind": "voicePack",
+    "source": {
+      "owner": "ElenaChan-me",
+      "repo": "Triggevent-VoiceGen",
+      "assetPattern": "voicepack-tsukino.zip",
+      "includePrerelease": false
+    },
+    "entryFile": "manifest.json",
+    "dependsOn": [ "triggevent-jp" ],
+    "notes": "インストール後、Triggevent Plus の「Voice Pack」タブで選べます。配布元は Private リポジトリのため GitHub トークンが必要です。"
   }
 ]

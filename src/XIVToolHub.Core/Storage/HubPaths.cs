@@ -15,6 +15,9 @@ public sealed record HubPaths
 
     public required string DalamudConfigPath { get; init; }
 
+    /// <summary>XIVLauncher の設定。ゲームのインストール先はここから読む。</summary>
+    public string XivLauncherConfigPath => Path.Combine(Path.GetDirectoryName(DalamudConfigPath) ?? "", "launcherConfigV3.json");
+
     public string ToolsDirectory => Path.Combine(DataDirectory, "tools");
 
     public string DownloadsDirectory => Path.Combine(DataDirectory, "downloads");
