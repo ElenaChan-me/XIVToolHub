@@ -21,6 +21,7 @@ public sealed class GitHubReleaseClient
     public const long MaxAssetBytes = 1024L * 1024 * 1024;
 
     private const int ReleasesPerPage = 20;
+    private const int MaxRedirects = 5;
     private const int CopyBufferSize = 81920;
 
     private readonly HttpClient _http;
@@ -34,7 +35,8 @@ public sealed class GitHubReleaseClient
 
     public static HttpClient CreateHttpClient()
     {
-        var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = true })
+        // 転送は SendAsync で自分で辿る。自動に任せるとトークンが外れ、改名したリポジトリが Private だと 404 になるため
+        var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
         {
             BaseAddress = new Uri(ApiBaseUrl),
             Timeout = TimeSpan.FromMinutes(30),
@@ -197,6 +199,24 @@ public sealed class GitHubReleaseClient
         try
         {
             response = await _http.SendAsync(request, option, cancellationToken).ConfigureAwait(false);
+            var current = request;
+            for (var hop = 0; IsRedirect(response.StatusCode) && response.Headers.Location is { } location; hop++)
+            {
+                response.Dispose();
+                if (hop >= MaxRedirects)
+                {
+                    throw new HubException("GitHub からの転送が多すぎます。");
+                }
+                var from = current.RequestUri!.IsAbsoluteUri ? current.RequestUri : new Uri(_http.BaseAddress!, current.RequestUri);
+                var next = Redirected(current, new Uri(from, location));
+                // 呼び出し元の要求は呼び出し元が破棄する
+                if (!ReferenceEquals(current, request))
+                {
+                    current.Dispose();
+                }
+                current = next;
+                response = await _http.SendAsync(current, option, cancellationToken).ConfigureAwait(false);
+            }
         }
         catch (HttpRequestException ex)
         {
@@ -220,6 +240,32 @@ public sealed class GitHubReleaseClient
                 "GitHub の利用制限に達したか、アクセス権がありません。しばらく待つか、GitHub トークンを登録してください。"),
             _ => new HubException($"GitHub からエラーが返されました（{(int)status}）。"),
         };
+    }
+
+    private static bool IsRedirect(HttpStatusCode status) =>
+        status is HttpStatusCode.MovedPermanently or HttpStatusCode.Found or HttpStatusCode.SeeOther
+            or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect;
+
+    /// <summary>
+    /// 転送先への要求を作る。改名したリポジトリは同じ API への転送なのでトークンを付け直し、
+    /// アセットの実体（GitHub の外のストレージ）にはトークンを渡さない。
+    /// </summary>
+    private static HttpRequestMessage Redirected(HttpRequestMessage original, Uri target)
+    {
+        if (target.Scheme != Uri.UriSchemeHttps)
+        {
+            throw new HubException("GitHub から安全でない転送先が返されました。");
+        }
+        var next = new HttpRequestMessage(HttpMethod.Get, target);
+        foreach (var accept in original.Headers.Accept)
+        {
+            next.Headers.Accept.Add(accept);
+        }
+        if (original.Headers.Authorization is { } auth && string.Equals(target.Host, new Uri(ApiBaseUrl).Host, StringComparison.OrdinalIgnoreCase))
+        {
+            next.Headers.Authorization = auth;
+        }
+        return next;
     }
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
