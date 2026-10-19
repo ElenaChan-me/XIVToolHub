@@ -54,7 +54,8 @@ public partial class App : Application
         var fonts = new FontStore(paths, _fontHttp);
         var settings = new HubSettingsStore(paths);
         ThemeManager.Apply(settings.Theme);
-        var installer = new ToolInstaller(paths, github, installed, dalamud, act, gameDetector, clock, fonts.ResolvePath, () => settings.Theme);
+        var installer = new ToolInstaller(paths, github, installed, dalamud, act, gameDetector, clock, fonts.ResolvePath, () => settings.Theme,
+            () => catalog.VoicePackDirectories(installed));
         var dialogs = new WpfDialogService(github, tokenStore);
         var viewModel = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), fonts, settings, ThemeManager.Apply, paths, dialogs, clock,
             new PatchStatusChecker(paths.XivLauncherConfigPath, _fontHttp, github));

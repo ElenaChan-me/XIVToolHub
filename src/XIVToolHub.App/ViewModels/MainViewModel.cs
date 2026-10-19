@@ -118,18 +118,33 @@ public sealed class MainViewModel : ObservableObject
             }
             _applyTheme(value);
             OnPropertyChanged();
-            foreach (var item in Tools.Where(t => t.CanConfigure))
-            {
-                try
-                {
-                    _installer.RefreshSettings(item.Definition);
-                }
-                catch (HubException ex)
-                {
-                    AddLog($"{item.Name}: テーマを反映できませんでした。{ex.Message}");
-                }
-            }
+            RefreshToolSettings("テーマ");
             AddLog($"テーマを「{HubThemes.All.First(t => t.Code == value).DisplayName}」にしました。ツールには次回の起動時に反映されます。");
+        }
+    }
+
+    /// <summary>インストール済みのツールの設定ファイルを今の設定で書き直す。</summary>
+    private void RefreshToolSettings(string what)
+    {
+        foreach (var item in Tools.Where(t => t.CanConfigure))
+        {
+            try
+            {
+                _installer.RefreshSettings(item.Definition);
+            }
+            catch (HubException ex)
+            {
+                AddLog($"{item.Name}: {what}を反映できませんでした。{ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>ボイスパックを入れ替えたら、Triggevent Plus に渡す一覧も書き直す。</summary>
+    private void RefreshVoicePacks(IEnumerable<ToolItemViewModel> changed)
+    {
+        if (changed.Any(t => t.Definition.Kind == ToolKind.VoicePack))
+        {
+            RefreshToolSettings("ボイスパックの一覧");
         }
     }
 
@@ -273,6 +288,7 @@ public sealed class MainViewModel : ObservableObject
         {
             IsBusy = false;
         }
+        RefreshVoicePacks(targets);
 
         var message = $"{targets.Count} 件中 {succeeded} 件を処理しました。";
         if (devModeEnabled)
@@ -355,6 +371,7 @@ public sealed class MainViewModel : ObservableObject
                 _dialogs.ShowError($"{item.Name} をアンインストールできませんでした。\n{ex.Message}");
             }
         }
+        RefreshVoicePacks(targets);
     }
 
     private void Launch(ToolItemViewModel item)

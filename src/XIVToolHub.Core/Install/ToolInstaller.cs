@@ -26,12 +26,15 @@ public sealed class ToolInstaller
     private readonly TimeProvider _clock;
     private readonly Func<string?, string?> _resolveFontPath;
     private readonly Func<string> _currentTheme;
+    private readonly Func<IReadOnlyList<string>> _voicePacks;
 
     /// <param name="resolveFontPath">フォント ID から取得済みのフォントファイルを探す。未取得なら null を返す。</param>
     /// <param name="currentTheme">ツールに伝える現在のテーマ。</param>
+    /// <param name="voicePacks">インストール済みのボイスパックのフォルダ。</param>
     public ToolInstaller(HubPaths paths, GitHubReleaseClient github, InstalledStore installed, DalamudConfigEditor dalamud, ActConfigEditor act, IProcessDetector gameDetector, TimeProvider clock,
-        Func<string?, string?>? resolveFontPath = null, Func<string>? currentTheme = null)
+        Func<string?, string?>? resolveFontPath = null, Func<string>? currentTheme = null, Func<IReadOnlyList<string>>? voicePacks = null)
     {
+        _voicePacks = voicePacks ?? (() => []);
         _resolveFontPath = resolveFontPath ?? (_ => null);
         _currentTheme = currentTheme ?? (() => HubThemes.Default);
         _paths = paths;
@@ -108,7 +111,7 @@ public sealed class ToolInstaller
                 // 入れ替え後のフォルダには設定ファイルが無いので、更新のたびに書き直す
                 if (effective is not null)
                 {
-                    ToolSettingsFile.Write(installDirectory, tool, effective, _resolveFontPath(effective.FontId), _currentTheme());
+                    ToolSettingsFile.Write(installDirectory, tool, effective, _resolveFontPath(effective.FontId), _currentTheme(), _voicePacks());
                 }
                 switch (tool.Kind)
                 {
@@ -161,7 +164,7 @@ public sealed class ToolInstaller
         }
         var fontId = NormalizeFont(tool, preferences);
         var normalized = preferences with { FontId = fontId };
-        ToolSettingsFile.Write(current.InstallDirectory, tool, normalized, _resolveFontPath(fontId), _currentTheme());
+        ToolSettingsFile.Write(current.InstallDirectory, tool, normalized, _resolveFontPath(fontId), _currentTheme(), _voicePacks());
         _installed.Set(current with { Language = normalized.Language, FontId = fontId });
     }
 
