@@ -46,6 +46,7 @@ public sealed class ToolItemViewModel : ObservableObject
     {
         ToolKind.DalamudPlugin => "Dalamud プラグイン",
         ToolKind.ActPlugin => "ACT プラグイン",
+        ToolKind.VoicePack => "ボイスパック",
         _ => "アプリ",
     };
 

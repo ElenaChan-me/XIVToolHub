@@ -10,6 +10,9 @@ public enum ToolKind
 
     /// <summary>XIVToolHub が管理する ACT（Advanced Combat Tracker）に読み込ませるプラグイン。</summary>
     ActPlugin,
+
+    /// <summary>Triggevent Plus の読み上げを差し替える音声のパック。インストール先を Triggevent Plus に伝える。</summary>
+    VoicePack,
 }
 
 /// <summary>

@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using XIVToolHub.Core.Install;
 using XIVToolHub.Core.Models;
 using XIVToolHub.Core.Storage;
 
@@ -13,6 +14,8 @@ public sealed partial class ToolCatalog
 {
     /// <summary>ACT プラグインの登録先になる ACT 本体の ID。</summary>
     public const string ActToolId = "act";
+    public const string TriggeventToolId = "triggevent-jp";
+    public const string VoicePackManifest = "manifest.json";
 
     private const string BuiltInResourceName = "XIVToolHub.Core.builtin-catalog.json";
     private const int MaxDependencies = 10;
@@ -36,6 +39,17 @@ public sealed partial class ToolCatalog
     public IReadOnlyList<ToolDefinition> Tools => [.. _builtIn, .. _userTools];
 
     public ToolDefinition? Find(string id) => Tools.FirstOrDefault(t => t.Id == id);
+
+    /// <summary>インストール済みのボイスパックのフォルダ（manifest.json のあるフォルダ）。</summary>
+    public IReadOnlyList<string> VoicePackDirectories(InstalledStore installed)
+    {
+        ArgumentNullException.ThrowIfNull(installed);
+        return [.. Tools
+            .Where(t => t.Kind == ToolKind.VoicePack)
+            .Select(t => (Tool: t, Record: installed.Find(t.Id)))
+            .Where(x => x.Record is not null && File.Exists(Path.Combine(x.Record.InstallDirectory, x.Tool.EntryFile)))
+            .Select(x => Path.GetDirectoryName(Path.GetFullPath(Path.Combine(x.Record!.InstallDirectory, x.Tool.EntryFile)))!)];
+    }
 
     public void AddUserTool(ToolDefinition definition)
     {
@@ -126,6 +140,10 @@ public sealed partial class ToolCatalog
         {
             errors.Add("アプリは実行ファイル（.exe）を指定してください。");
         }
+        else if (definition.Kind == ToolKind.VoicePack && !string.Equals(Path.GetFileName(entry), VoicePackManifest, StringComparison.OrdinalIgnoreCase))
+        {
+            errors.Add($"ボイスパックは {VoicePackManifest} を指定してください。");
+        }
 
         var dependsOn = definition.DependsOn ?? [];
         if (dependsOn.Count > MaxDependencies || dependsOn.Any(d => !IdPattern().IsMatch(d ?? "") || d == definition.Id))
@@ -135,6 +153,10 @@ public sealed partial class ToolCatalog
         if (definition.Kind == ToolKind.ActPlugin && !dependsOn.Contains(ActToolId))
         {
             errors.Add($"ACT プラグインは ACT（{ActToolId}）に依存させてください。");
+        }
+        if (definition.Kind == ToolKind.VoicePack && !dependsOn.Contains(TriggeventToolId))
+        {
+            errors.Add($"ボイスパックは Triggevent Plus（{TriggeventToolId}）に依存させてください。");
         }
 
         var languages = definition.Languages ?? [];

@@ -4,6 +4,7 @@ using XIVToolHub.App.Infrastructure;
 using XIVToolHub.App.Services;
 using XIVToolHub.Core;
 using XIVToolHub.Core.Catalog;
+using XIVToolHub.Core.Compatibility;
 using XIVToolHub.Core.Fonts;
 using XIVToolHub.Core.Install;
 using XIVToolHub.Core.Models;
@@ -25,13 +26,17 @@ public sealed class MainViewModel : ObservableObject
     private readonly HubPaths _paths;
     private readonly IDialogService _dialogs;
     private readonly TimeProvider _clock;
+    private readonly PatchStatusChecker? _patchStatus;
+    private string? _patchStatusText;
+    private bool _patchNeedsAttention;
     private bool _isBusy;
     private ToolItemViewModel? _selectedItem;
 
     /// <param name="applyTheme">画面の配色を切り替える処理。</param>
     public MainViewModel(ToolCatalog catalog, InstalledStore installed, ToolInstaller installer, ToolLauncher launcher, FontStore fonts, HubSettingsStore settings,
-        Action<string> applyTheme, HubPaths paths, IDialogService dialogs, TimeProvider clock)
+        Action<string> applyTheme, HubPaths paths, IDialogService dialogs, TimeProvider clock, PatchStatusChecker? patchStatus = null)
     {
+        _patchStatus = patchStatus;
         _fonts = fonts;
         _settings = settings;
         _applyTheme = applyTheme;
@@ -113,24 +118,56 @@ public sealed class MainViewModel : ObservableObject
             }
             _applyTheme(value);
             OnPropertyChanged();
-            foreach (var item in Tools.Where(t => t.CanConfigure))
-            {
-                try
-                {
-                    _installer.RefreshSettings(item.Definition);
-                }
-                catch (HubException ex)
-                {
-                    AddLog($"{item.Name}: テーマを反映できませんでした。{ex.Message}");
-                }
-            }
+            RefreshToolSettings("テーマ");
             AddLog($"テーマを「{HubThemes.All.First(t => t.Code == value).DisplayName}」にしました。ツールには次回の起動時に反映されます。");
+        }
+    }
+
+    /// <summary>インストール済みのツールの設定ファイルを今の設定で書き直す。</summary>
+    private void RefreshToolSettings(string what)
+    {
+        foreach (var item in Tools.Where(t => t.CanConfigure))
+        {
+            try
+            {
+                _installer.RefreshSettings(item.Definition);
+            }
+            catch (HubException ex)
+            {
+                AddLog($"{item.Name}: {what}を反映できませんでした。{ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>ボイスパックを入れ替えたら、Triggevent Plus に渡す一覧も書き直す。</summary>
+    private void RefreshVoicePacks(IEnumerable<ToolItemViewModel> changed)
+    {
+        if (changed.Any(t => t.Definition.Kind == ToolKind.VoicePack))
+        {
+            RefreshToolSettings("ボイスパックの一覧");
         }
     }
 
     public ToolItemViewModel? SelectedItem { get => _selectedItem; set => SetProperty(ref _selectedItem, value); }
 
     public string DataDirectory => _paths.DataDirectory;
+
+    /// <summary>Dalamud と FFXIV_ACT_Plugin が今のゲームに対応しているか。確認前は null。</summary>
+    public string? PatchStatusText
+    {
+        get => _patchStatusText;
+        private set
+        {
+            if (SetProperty(ref _patchStatusText, value))
+            {
+                OnPropertyChanged(nameof(HasPatchStatus));
+            }
+        }
+    }
+
+    public bool HasPatchStatus => _patchStatusText is not null;
+
+    public bool PatchNeedsAttention { get => _patchNeedsAttention; private set => SetProperty(ref _patchNeedsAttention, value); }
 
     public async Task CheckUpdatesAsync()
     {
@@ -139,7 +176,7 @@ public sealed class MainViewModel : ObservableObject
         {
             AddLog("最新バージョンを確認しています。");
             // 同時に問い合わせて待ち時間を短くする。件数は利用者のカタログ程度なので制限は設けない。
-            await Task.WhenAll(Tools.Select(CheckOneAsync));
+            await Task.WhenAll([.. Tools.Select(CheckOneAsync), CheckPatchStatusAsync()]);
             AddLog("確認が完了しました。");
         }
         finally
@@ -160,6 +197,25 @@ public sealed class MainViewModel : ObservableObject
         {
             item.Error = ex.Message;
             AddLog($"{item.Name}: {ex.Message}");
+        }
+    }
+
+    private async Task CheckPatchStatusAsync()
+    {
+        if (_patchStatus is null)
+        {
+            return;
+        }
+        var status = await _patchStatus.CheckAsync(CancellationToken.None);
+        PatchStatusText = PatchStatusChecker.Describe(status);
+        PatchNeedsAttention = PatchStatusChecker.NeedsAttention(status);
+        foreach (var problem in status.Problems)
+        {
+            AddLog(problem);
+        }
+        if (PatchNeedsAttention)
+        {
+            AddLog(PatchStatusText);
         }
     }
 
@@ -232,6 +288,7 @@ public sealed class MainViewModel : ObservableObject
         {
             IsBusy = false;
         }
+        RefreshVoicePacks(targets);
 
         var message = $"{targets.Count} 件中 {succeeded} 件を処理しました。";
         if (devModeEnabled)
@@ -314,6 +371,7 @@ public sealed class MainViewModel : ObservableObject
                 _dialogs.ShowError($"{item.Name} をアンインストールできませんでした。\n{ex.Message}");
             }
         }
+        RefreshVoicePacks(targets);
     }
 
     private void Launch(ToolItemViewModel item)
