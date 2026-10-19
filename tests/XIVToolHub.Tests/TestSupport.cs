@@ -69,6 +69,11 @@ internal sealed class FakeGitHubHandler : HttpMessageHandler
     public void Bytes(string path, byte[] content) =>
         _routes[path] = _ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(content) };
 
+    public void Redirect(string path, string location) =>
+        _routes[path] = _ => new HttpResponseMessage(HttpStatusCode.MovedPermanently) { Headers = { Location = new Uri(location, UriKind.RelativeOrAbsolute) } };
+
+    public void Route(string path, Func<HttpRequestMessage, HttpResponseMessage> route) => _routes[path] = route;
+
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         Requests.Add(request);
