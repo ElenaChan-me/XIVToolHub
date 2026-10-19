@@ -4,6 +4,9 @@ FINAL FANTASY XIV 向けの外部ツール（Dalamud プラグインや単体ア
 
 A Windows app that installs, updates and manages third-party tools for FINAL FANTASY XIV (Dalamud plugins and standalone apps) from GitHub releases.
 
+> Glamaholic Plus と Triggevent Plus は、2026-10 に Glamaholic JP・Triggevent JP から改名しました。インストール済みのものはそのまま更新できます。
+> Glamaholic Plus and Triggevent Plus were renamed from Glamaholic JP and Triggevent JP in October 2026. Existing installs keep updating.
+
 ## 注意 / Warning
 
 FINAL FANTASY XIV の利用規約では外部ツールの使用が禁止されており、使用が確認された場合はアカウントの利用停止などの対象になります。利用は自己責任で行ってください。
@@ -22,18 +25,18 @@ Third-party tools are prohibited by the FINAL FANTASY XIV Terms of Service and m
   Add new tools to the catalog by GitHub repository
 - Private リポジトリ用の GitHub トークンを Windows の資格情報マネージャーに保存
   Store a GitHub token for private repositories in Windows Credential Manager
-- 日本語化したツールの表示言語（日本語・英語・韓国語・中国語）をインストール時に選択し、日本語の場合は後から追加フォントを選択
+- Glamaholic Plus・Triggevent Plus の表示言語（日本語・英語・韓国語・中国語）をインストール時に選択し、日本語の場合は後から追加フォントを選択
   Choose the display language (Japanese, English, Korean, Chinese) of the localized tools at install time, and an additional font for Japanese later
 
 ### 同梱カタログ / Built-in catalog
 
 | ツール / Tool | 種類 / Kind | 取得元 / Source | 必要なツール / Requires |
 | --- | --- | --- | --- |
-| Glamaholic JP | Dalamud プラグイン | ElenaChan-me/Glamaholic-JP | - |
+| Glamaholic Plus | Dalamud プラグイン | ElenaChan-me/Glamaholic-Plus | - |
 | ACT（Advanced Combat Tracker） | アプリ / Application | EQAditu/AdvancedCombatTracker | - |
 | FFXIV_ACT_Plugin | ACT プラグイン | ravahn/FFXIV_ACT_Plugin | ACT |
 | OverlayPlugin | ACT プラグイン | OverlayPlugin/OverlayPlugin | ACT |
-| Triggevent JP | アプリ / Application | ElenaChan-me/Triggevent-JP | ACT, FFXIV_ACT_Plugin, OverlayPlugin |
+| Triggevent Plus | アプリ / Application | ElenaChan-me/Triggevent-Plus | ACT, FFXIV_ACT_Plugin, OverlayPlugin |
 
 ツールを選ぶと、必要なツールも自動で選択され、必要とされる側から順にインストールされます。
 OverlayPlugin は、更新が止まっている ngld 版ではなく、後継の OverlayPlugin/OverlayPlugin を使います。
@@ -58,7 +61,7 @@ For Triggevent, start the OverlayPlugin WebSocket server in ACT.
 
 ## 表示言語とフォント / Display language and fonts
 
-Glamaholic JP と Triggevent JP は、初めてインストールするときに表示言語（日本語・English・한국어・简体中文）を選びます。
+Glamaholic Plus と Triggevent Plus は、初めてインストールするときに表示言語（日本語・English・한국어・简体中文）を選びます。
 インストール後は、ツールの「表示設定」から言語を変更でき、日本語の場合は 30 種類の追加フォントから選べます。
 
 - 選んだ設定は、ツールの起動ファイル・DLL と同じフォルダの `xivtoolhub-settings.json`（`{"language": "ja", "fontPath": "...", "theme": "dark"}`）に書き込み、ツールは起動時に読み込みます。更新しても設定は引き継ぎます。
@@ -67,16 +70,16 @@ Glamaholic JP と Triggevent JP は、初めてインストールするときに
 - 収録文字が少ないフォント（かなのみ等）でも、足りない文字は標準フォントで表示します。
 - 各フォントの利用規約は配布元で確認してください。さなフォン丸には「アプリへの使用禁止」の記載があるため、画面に注意を表示します。
 
-Glamaholic JP and Triggevent JP ask for a display language on first install. Afterwards, the language can be changed from the tool's settings, and for Japanese one of 30 additional fonts can be selected.
+Glamaholic Plus and Triggevent Plus ask for a display language on first install. Afterwards, the language can be changed from the tool's settings, and for Japanese one of 30 additional fonts can be selected.
 The choice is written to `xivtoolhub-settings.json` next to the tool's entry file and kept across updates.
 Fonts are not bundled: those with an official direct download are fetched from the author's site, the others are imported from a file downloaded from the official page. Missing glyphs fall back to the default font. Please check each font's license on its official page.
 
 ## テーマ / Themes
 
-画面下部の「テーマ」で、配色を「黒・赤」と「白・水色」から選べます。選んだテーマは XIVToolHub にすぐ反映され、Glamaholic JP と Triggevent JP にも `xivtoolhub-settings.json` の `theme`（`dark` / `light`）で伝わり、次回の起動時から同じ配色で表示されます。
-ハブから起動した Triggevent JP では、テーマを XIVToolHub でまとめて管理するため、Triggevent 側のテーマ選択は表示しません。
+画面下部の「テーマ」で、配色を「黒・赤」と「白・水色」から選べます。選んだテーマは XIVToolHub にすぐ反映され、Glamaholic Plus と Triggevent Plus にも `xivtoolhub-settings.json` の `theme`（`dark` / `light`）で伝わり、次回の起動時から同じ配色で表示されます。
+ハブから起動した Triggevent Plus では、テーマを XIVToolHub でまとめて管理するため、Triggevent 側のテーマ選択は表示しません。
 
-Choose "Black / Red" or "White / Light Blue" at the bottom of the window. The theme is applied to XIVToolHub immediately and passed to Glamaholic JP and Triggevent JP through the `theme` field of `xivtoolhub-settings.json`, so all tools share the same colors from their next start.
+Choose "Black / Red" or "White / Light Blue" at the bottom of the window. The theme is applied to XIVToolHub immediately and passed to Glamaholic Plus and Triggevent Plus through the `theme` field of `xivtoolhub-settings.json`, so all tools share the same colors from their next start.
 
 ## Dalamud プラグインの扱い / Dalamud plugins
 

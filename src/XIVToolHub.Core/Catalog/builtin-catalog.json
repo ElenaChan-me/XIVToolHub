@@ -1,12 +1,12 @@
 [
   {
     "id": "glamaholic-jp",
-    "name": "Glamaholic JP",
-    "description": "ミラージュプレートを好きなだけ保存し、ミラージュドレッサーで呼び出せる Dalamud プラグイン（日本語化・軽量化版）。",
+    "name": "Glamaholic Plus",
+    "description": "ミラージュプレートを好きなだけ保存し、ミラージュドレッサーで呼び出せる Dalamud プラグイン（多言語化・軽量化した拡張版）。",
     "kind": "dalamudPlugin",
     "source": {
       "owner": "ElenaChan-me",
-      "repo": "Glamaholic-JP",
+      "repo": "Glamaholic-Plus",
       "assetPattern": "latest.zip",
       "includePrerelease": false
     },
@@ -62,13 +62,13 @@
   },
   {
     "id": "triggevent-jp",
-    "name": "Triggevent JP",
-    "description": "トリガー、オートマーカー、DoT・リキャスト表示、ログ解析などをまとめたツール（日本語化・最適化版）。",
+    "name": "Triggevent Plus",
+    "description": "トリガー、オートマーカー、DoT・リキャスト表示、ログ解析などをまとめたツール。多言語表示・ボイスパックによる日本語の読み上げ・全拡張のボスに対応した拡張版。",
     "kind": "application",
     "source": {
       "owner": "ElenaChan-me",
-      "repo": "Triggevent-JP",
-      "assetPattern": "triggevent-jp-win.zip",
+      "repo": "Triggevent-Plus",
+      "assetPattern": "triggevent-plus-win.zip",
       "includePrerelease": false
     },
     "entryFile": "triggevent/triggevent.exe",
