@@ -31,6 +31,10 @@ Third-party tools are prohibited by the FINAL FANTASY XIV Terms of Service and m
   Patch status: compares the installed game version with the version Dalamud supports and with the latest FFXIV_ACT_Plugin release date, and warns when one has not caught up yet
 - Triggevent Plus のボイスパックのインストール。インストールしたパックは Triggevent Plus の一覧に出て、最初のものはそのまま使われます
   Install voice packs for Triggevent Plus; installed packs appear in Triggevent Plus and the first one is used automatically
+- XIVToolHub 自身の更新。新しいバージョンがあると一覧の上に表示し、「更新して再起動」で入れ替えます（配布の exe から起動しているときだけ）
+  Self-update: when a newer XIVToolHub is released, a banner offers to replace the exe and restart
+- 「ACT と Triggevent をまとめて起動」。ACT を起動し、OverlayPlugin の WebSocket が待ち受けを始めてから Triggevent Plus を起動します。起動中のものはそのまま使い、WebSocket サーバーが止まっている場合は知らせます
+  One-click launch: starts ACT, waits for the OverlayPlugin WebSocket, then starts Triggevent Plus; tools already running are left as they are
 
 ### 同梱カタログ / Built-in catalog
 
