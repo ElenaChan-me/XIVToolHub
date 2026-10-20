@@ -7,7 +7,9 @@ using XIVToolHub.Core.Catalog;
 using XIVToolHub.Core.Compatibility;
 using XIVToolHub.Core.Fonts;
 using XIVToolHub.Core.Install;
+using XIVToolHub.Core.GitHub;
 using XIVToolHub.Core.Models;
+using XIVToolHub.Core.SelfUpdate;
 using XIVToolHub.Core.Storage;
 
 namespace XIVToolHub.App.ViewModels;
@@ -27,6 +29,10 @@ public sealed class MainViewModel : ObservableObject
     private readonly IDialogService _dialogs;
     private readonly TimeProvider _clock;
     private readonly PatchStatusChecker? _patchStatus;
+    private readonly SelfUpdater? _selfUpdater;
+    private readonly LaunchSequence? _launchSequence;
+    private readonly Action<string> _restart;
+    private ReleaseInfo? _selfUpdate;
     private string? _patchStatusText;
     private bool _patchNeedsAttention;
     private bool _isBusy;
@@ -34,9 +40,13 @@ public sealed class MainViewModel : ObservableObject
 
     /// <param name="applyTheme">画面の配色を切り替える処理。</param>
     public MainViewModel(ToolCatalog catalog, InstalledStore installed, ToolInstaller installer, ToolLauncher launcher, FontStore fonts, HubSettingsStore settings,
-        Action<string> applyTheme, HubPaths paths, IDialogService dialogs, TimeProvider clock, PatchStatusChecker? patchStatus = null)
+        Action<string> applyTheme, HubPaths paths, IDialogService dialogs, TimeProvider clock, PatchStatusChecker? patchStatus = null,
+        SelfUpdater? selfUpdater = null, LaunchSequence? launchSequence = null, Action<string>? restart = null)
     {
         _patchStatus = patchStatus;
+        _selfUpdater = selfUpdater;
+        _launchSequence = launchSequence;
+        _restart = restart ?? (_ => { });
         _fonts = fonts;
         _settings = settings;
         _applyTheme = applyTheme;
@@ -60,6 +70,8 @@ public sealed class MainViewModel : ObservableObject
         RemoveToolCommand = new RelayCommand<ToolItemViewModel>(RemoveTool, t => !_isBusy && !t.IsBuiltIn);
         TokenSettingsCommand = new RelayCommand(() => _dialogs.ShowTokenSettings(), () => !_isBusy);
         ToolSettingsCommand = new RelayCommand<ToolItemViewModel>(OpenToolSettings, t => !_isBusy && t.CanConfigure);
+        UpdateSelfCommand = new AsyncRelayCommand(UpdateSelfAsync, () => !_isBusy && _selfUpdate is not null);
+        LaunchAllCommand = new AsyncRelayCommand(LaunchAllAsync, () => !_isBusy && CanLaunchAll);
 
         ReloadTools();
     }
@@ -80,6 +92,20 @@ public sealed class MainViewModel : ObservableObject
     public ICommand RemoveToolCommand { get; }
     public ICommand TokenSettingsCommand { get; }
     public ICommand ToolSettingsCommand { get; }
+    public ICommand UpdateSelfCommand { get; }
+    public ICommand LaunchAllCommand { get; }
+
+    /// <summary>XIVToolHub の新しいバージョンがあるときの案内。無ければ null。</summary>
+    public string? SelfUpdateText => _selfUpdate is null || _selfUpdater is null
+        ? null
+        : $"XIVToolHub の新しいバージョン {_selfUpdate.TagName} があります（今は v{_selfUpdater.CurrentVersion.ToString(3)}）。";
+
+    public bool HasSelfUpdate => _selfUpdate is not null;
+
+    /// <summary>ACT と Triggevent Plus がどちらもインストール済みか。</summary>
+    public bool CanLaunchAll => _launchSequence is not null
+        && Tools.Any(t => t.Id == ToolCatalog.ActToolId && t.IsInstalled)
+        && Tools.Any(t => t.Id == ToolCatalog.TriggeventToolId && t.IsInstalled);
 
     public bool IsBusy
     {
@@ -176,7 +202,7 @@ public sealed class MainViewModel : ObservableObject
         {
             AddLog("最新バージョンを確認しています。");
             // 同時に問い合わせて待ち時間を短くする。件数は利用者のカタログ程度なので制限は設けない。
-            await Task.WhenAll([.. Tools.Select(CheckOneAsync), CheckPatchStatusAsync()]);
+            await Task.WhenAll([.. Tools.Select(CheckOneAsync), CheckPatchStatusAsync(), CheckSelfUpdateAsync()]);
             AddLog("確認が完了しました。");
         }
         finally
@@ -197,6 +223,87 @@ public sealed class MainViewModel : ObservableObject
         {
             item.Error = ex.Message;
             AddLog($"{item.Name}: {ex.Message}");
+        }
+    }
+
+    private async Task CheckSelfUpdateAsync()
+    {
+        if (_selfUpdater is null)
+        {
+            return;
+        }
+        try
+        {
+            _selfUpdate = await _selfUpdater.CheckAsync(CancellationToken.None);
+        }
+        catch (HubException ex)
+        {
+            // 確認できなくてもツールの管理は続けられるので、ログに残すだけにする
+            _selfUpdate = null;
+            AddLog($"XIVToolHub の更新を確認できませんでした。{ex.Message}");
+        }
+        OnPropertyChanged(nameof(SelfUpdateText));
+        OnPropertyChanged(nameof(HasSelfUpdate));
+        if (SelfUpdateText is { } text)
+        {
+            AddLog(text);
+        }
+    }
+
+    private async Task UpdateSelfAsync()
+    {
+        if (_selfUpdater is null || _selfUpdate is not { } release
+            || !_dialogs.Confirm($"XIVToolHub を {release.TagName} に更新して再起動しますか？", "XIVToolHub の更新"))
+        {
+            return;
+        }
+        IsBusy = true;
+        string exe;
+        try
+        {
+            AddLog($"XIVToolHub {release.TagName} をダウンロードしています。");
+            exe = await _selfUpdater.InstallAsync(release, null, CancellationToken.None);
+        }
+        catch (HubException ex)
+        {
+            AddLog(ex.Message);
+            _dialogs.ShowError(ex.Message);
+            return;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+        _restart(exe);
+    }
+
+    private async Task LaunchAllAsync()
+    {
+        var act = Tools.FirstOrDefault(t => t.Id == ToolCatalog.ActToolId);
+        var triggevent = Tools.FirstOrDefault(t => t.Id == ToolCatalog.TriggeventToolId);
+        if (_launchSequence is null || act is null || triggevent is null)
+        {
+            return;
+        }
+        IsBusy = true;
+        try
+        {
+            AddLog("ACT と Triggevent Plus を起動しています。OverlayPlugin の準備を待つので少しかかります。");
+            var messages = await _launchSequence.RunAsync(act.Definition, _paths.ToolDirectory(act.Id), triggevent.Definition,
+                LaunchSequence.DefaultWaitTimeout, CancellationToken.None);
+            foreach (var message in messages)
+            {
+                AddLog(message);
+            }
+        }
+        catch (HubException ex)
+        {
+            AddLog(ex.Message);
+            _dialogs.ShowError(ex.Message);
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 

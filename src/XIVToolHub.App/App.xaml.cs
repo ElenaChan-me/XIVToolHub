@@ -11,6 +11,7 @@ using XIVToolHub.Core.Dalamud;
 using XIVToolHub.Core.Fonts;
 using XIVToolHub.Core.GitHub;
 using XIVToolHub.Core.Install;
+using XIVToolHub.Core.SelfUpdate;
 using XIVToolHub.Core.Storage;
 
 namespace XIVToolHub.App;
@@ -57,8 +58,11 @@ public partial class App : Application
         var installer = new ToolInstaller(paths, github, installed, dalamud, act, gameDetector, clock, fonts.ResolvePath, () => settings.Theme,
             () => catalog.VoicePackDirectories(installed));
         var dialogs = new WpfDialogService(github, tokenStore);
-        var viewModel = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), fonts, settings, ThemeManager.Apply, paths, dialogs, clock,
-            new PatchStatusChecker(paths.XivLauncherConfigPath, _fontHttp, github));
+        var launcher = new ToolLauncher(paths);
+        var launchSequence = new LaunchSequence(launcher.Launch, ProcessNameDetector.Act,
+            new ProcessInFolderDetector("javaw", paths.ToolDirectory(ToolCatalog.TriggeventToolId)), clock);
+        var viewModel = new MainViewModel(catalog, installed, installer, launcher, fonts, settings, ThemeManager.Apply, paths, dialogs, clock,
+            new PatchStatusChecker(paths.XivLauncherConfigPath, _fontHttp, github), CreateSelfUpdater(github, paths), launchSequence, Restart);
 
         var window = new MainWindow(viewModel);
         MainWindow = window;
@@ -71,6 +75,32 @@ public partial class App : Application
         _http?.Dispose();
         _fontHttp?.Dispose();
         base.OnExit(e);
+    }
+
+    private static SelfUpdater? CreateSelfUpdater(GitHubReleaseClient github, HubPaths paths)
+    {
+        var exe = Environment.ProcessPath;
+        if (exe is null || !SelfUpdater.CanUpdate(exe))
+        {
+            return null;
+        }
+        SelfUpdater.CleanupOld(exe);
+        var version = typeof(App).Assembly.GetName().Version ?? new Version(0, 0);
+        return new SelfUpdater(github, paths, exe, SelfUpdater.Normalize(version));
+    }
+
+    private void Restart(string exe)
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = false });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            MessageBox.Show($"更新しましたが、起動し直せませんでした。XIVToolHub をもう一度起動してください。{Environment.NewLine}{ex.Message}", "XIVToolHub",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        Shutdown(0);
     }
 
     private static string? ReadToken(CredentialTokenStore store)

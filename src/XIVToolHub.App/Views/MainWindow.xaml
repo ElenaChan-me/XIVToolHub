@@ -13,6 +13,8 @@
                 <Button Content="選択したツールをインストール・更新" Command="{Binding InstallSelectedCommand}" Style="{StaticResource PrimaryButton}" />
                 <Button Content="選択したツールをアンインストール" Command="{Binding UninstallSelectedCommand}" />
                 <Button Content="最新版を確認" Command="{Binding RefreshCommand}" />
+                <Button Content="ACT と Triggevent をまとめて起動" Command="{Binding LaunchAllCommand}"
+                        ToolTip="ACT を起動し、OverlayPlugin の WebSocket が使えるようになってから Triggevent Plus を起動します" />
                 <Border Width="1" Margin="6,4,12,4" Background="{DynamicResource BorderBrush}" />
                 <Button Content="すべて選択" Command="{Binding SelectAllCommand}" />
                 <Button Content="選択を解除" Command="{Binding ClearSelectionCommand}" />
@@ -20,6 +22,16 @@
                 <Button Content="ツールを追加" Command="{Binding AddToolCommand}" />
                 <Button Content="GitHub トークン" Command="{Binding TokenSettingsCommand}" />
             </WrapPanel>
+        </Border>
+
+        <!-- 古いハブのまま使い続けて、カタログの変更（改名など）に追いつけなくなるのを防ぐ -->
+        <Border DockPanel.Dock="Top" Padding="12,6" Background="{DynamicResource UpdateBackground}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                Visibility="{Binding HasSelfUpdate, Converter={StaticResource BoolToVisibility}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="更新して再起動" Command="{Binding UpdateSelfCommand}" Style="{StaticResource PrimaryButton}" />
+                <TextBlock Text="{Binding SelfUpdateText}" Foreground="{DynamicResource UpdateBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
+            </DockPanel>
         </Border>
 
         <!-- パッチ直後にツールが動かない理由がすぐ分かるよう、対応状況を一覧の上に出す -->
