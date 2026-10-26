@@ -198,9 +198,13 @@ public class ActSupportTests
 
         vm.Tools.Single(t => t.Id == "triggevent-jp").IsSelected = true;
 
+        // ACT を選ぶと、FF14 用のプラグインと ACT の日本語化も一緒に選ばれる
         Assert.Equal(
-            ["act", "ffxiv-act-plugin", "overlayplugin", "triggevent-jp"],
+            ["act", "act-localization", "ffxiv-act-plugin", "overlayplugin", "triggevent-jp"],
             vm.Tools.Where(t => t.IsSelected).Select(t => t.Id).Order());
+        // 一緒に選ばれたものは必須ではないので外せる
+        vm.Tools.Single(t => t.Id == "act-localization").IsSelected = false;
+        Assert.False(vm.Tools.Single(t => t.Id == "act-localization").IsSelected);
         Assert.Contains("ACT", vm.Tools.Single(t => t.Id == "triggevent-jp").DependsOnText, StringComparison.Ordinal);
         Assert.Equal("ACT プラグイン", vm.Tools.Single(t => t.Id == "overlayplugin").KindLabel);
     }

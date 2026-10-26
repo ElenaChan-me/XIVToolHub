@@ -9,6 +9,7 @@
         <TextBlock Style="{StaticResource HintText}" Margin="0,0,0,12">
             Private リポジトリのツールを取得するときに使います。GitHub の設定で
             「Fine-grained personal access token」を作成し、対象リポジトリの Contents を読み取り専用（Read-only）で許可してください。
+            ほかの人のリポジトリにコラボレーターとして招待されている場合は、Fine-grained で選べないことがあるので、「Tokens (classic)」で repo を許可したトークンを使ってください。
             トークンは Windows の資格情報マネージャーに保存され、ファイルには残りません。
         </TextBlock>
         <TextBlock x:Name="StatusText" Margin="0,0,0,8" />

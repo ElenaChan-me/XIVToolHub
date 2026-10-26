@@ -34,6 +34,8 @@ public sealed class ActConfigEditor
 
     public string ConfigPath => Path.Combine(_actDirectory, ConfigFolderName, ConfigFileName);
 
+    public string ActDirectory => _actDirectory;
+
     public bool ActInstalled => Directory.Exists(_actDirectory);
 
     public IReadOnlyList<string> GetRegisteredPaths()

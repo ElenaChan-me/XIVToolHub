@@ -54,15 +54,18 @@ public sealed class LaunchSequence
 
     private readonly Action<ToolDefinition> _launch;
     private readonly IProcessDetector _act;
+    private readonly IProcessDetector? _anyAct;
     private readonly IProcessDetector _triggevent;
     private readonly Func<int, CancellationToken, Task<bool>> _probe;
     private readonly TimeProvider _clock;
 
     /// <param name="launch">ツールを起動する処理（ToolLauncher.Launch）。</param>
     /// <param name="probe">この PC のポートが待ち受けているか調べる。テストで差し替える。</param>
+    /// <param name="anyAct">ハブの ACT に限らず、ACT が起動しているか。別に入れた ACT との同時起動を避けるために使う。</param>
     public LaunchSequence(Action<ToolDefinition> launch, IProcessDetector act, IProcessDetector triggevent, TimeProvider clock,
-        Func<int, CancellationToken, Task<bool>>? probe = null)
+        Func<int, CancellationToken, Task<bool>>? probe = null, IProcessDetector? anyAct = null)
     {
+        _anyAct = anyAct;
         _launch = launch;
         _act = act;
         _triggevent = triggevent;
@@ -79,8 +82,25 @@ public sealed class LaunchSequence
         {
             messages.Add("ACT はすでに起動しています。");
         }
+        else if (_anyAct?.IsRunning() == true)
+        {
+            // 2つの ACT で FFXIV_ACT_Plugin が同時に動くと、どちらも正しく読めなくなる
+            throw new HubException("XIVToolHub で入れたものとは別の ACT が起動しています。その ACT を終了してから、もう一度お試しください。");
+        }
         else
         {
+            // 前回 ACT の画面でサーバーを止めていても、起動したら始まるようにする（起動中は ACT が書き戻すので触らない）
+            try
+            {
+                if (OverlayPluginConfig.EnableWebSocket(actDirectory, _clock))
+                {
+                    messages.Add("OverlayPlugin の WebSocket サーバーを自動で開始する設定にしました。");
+                }
+            }
+            catch (HubException ex)
+            {
+                messages.Add(ex.Message);
+            }
             _launch(act);
             messages.Add("ACT を起動しました。");
         }
@@ -147,9 +167,11 @@ public sealed class LaunchSequence
 /// 指定したフォルダの中の実行ファイルから起動したプロセスがあるか。
 /// Triggevent Plus は同梱の Java（javaw.exe）で動くので、プロセス名ではなく場所で見分ける。
 /// </summary>
-public sealed class ProcessInFolderDetector(string processName, string folder) : IProcessDetector
+public sealed class ProcessInFolderDetector(string folder, params string[] processNames) : IProcessDetector
 {
-    public bool IsRunning()
+    public bool IsRunning() => processNames.Any(IsRunning);
+
+    private bool IsRunning(string processName)
     {
         var root = Path.GetFullPath(folder) + Path.DirectorySeparatorChar;
         var processes = Process.GetProcessesByName(processName);

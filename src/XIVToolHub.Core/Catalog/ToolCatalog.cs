@@ -14,6 +14,7 @@ public sealed partial class ToolCatalog
 {
     /// <summary>ACT プラグインの登録先になる ACT 本体の ID。</summary>
     public const string ActToolId = "act";
+    public const string OverlayPluginToolId = "overlayplugin";
     public const string TriggeventToolId = "triggevent-jp";
     public const string VoicePackManifest = "manifest.json";
 
@@ -157,6 +158,12 @@ public sealed partial class ToolCatalog
         if (definition.Kind == ToolKind.VoicePack && !dependsOn.Contains(TriggeventToolId))
         {
             errors.Add($"ボイスパックは Triggevent Plus（{TriggeventToolId}）に依存させてください。");
+        }
+
+        var includes = definition.Includes ?? [];
+        if (includes.Count > MaxDependencies || includes.Any(d => !IdPattern().IsMatch(d ?? "") || d == definition.Id))
+        {
+            errors.Add("一緒に入れるツールの指定が不正です。");
         }
 
         var languages = definition.Languages ?? [];

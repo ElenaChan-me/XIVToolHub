@@ -2,7 +2,9 @@
 # .NET ランタイムを同梱した単一ファイル形式にし、利用者側でのインストールを不要にする。
 param(
     [ValidateSet("win-x64", "win-arm64")]
-    [string]$Runtime = "win-x64"
+    [string]$Runtime = "win-x64",
+    # リリースのタグ（v0.7.0 など）。指定すると exe のバージョンをこれにそろえる
+    [string]$Tag = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,8 +14,16 @@ $output = Join-Path $root "publish\$Runtime"
 dotnet test (Join-Path $root "XIVToolHub.sln") -c Release
 if ($LASTEXITCODE -ne 0) { throw "テストに失敗したため中止しました。" }
 
+$versionArgs = @()
+if ($Tag -ne "") {
+    $version = $Tag.TrimStart("v", "V")
+    if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "タグからバージョンを読めません: $Tag" }
+    $versionArgs = @("-p:Version=$version")
+}
+
 dotnet publish (Join-Path $root "src\XIVToolHub.App\XIVToolHub.App.csproj") `
     -c Release `
+    @versionArgs `
     -r $Runtime `
     --self-contained true `
     -p:PublishSingleFile=true `
