@@ -677,6 +677,15 @@ public sealed class MainViewModel : ObservableObject
         {
             return;
         }
+        foreach (var includedId in item.Definition.Includes)
+        {
+            var included = Tools.FirstOrDefault(t => t.Id == includedId);
+            if (included is { IsSelected: false, IsInstalled: false })
+            {
+                included.IsSelected = true;
+                AddLog($"{item.Name} と一緒に使う {included.Name} も選択しました（不要なら選択を外せます）。");
+            }
+        }
         foreach (var dependencyId in item.Definition.DependsOn)
         {
             var dependency = Tools.FirstOrDefault(t => t.Id == dependencyId);

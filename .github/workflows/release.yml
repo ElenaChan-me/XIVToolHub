@@ -20,7 +20,7 @@ jobs:
 
       - name: Build
         shell: pwsh
-        run: ./scripts/publish.ps1
+        run: ./scripts/publish.ps1 -Tag "${{ github.ref_name }}"
 
       - name: Create release
         shell: pwsh

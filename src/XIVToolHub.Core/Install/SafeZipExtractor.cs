@@ -20,7 +20,9 @@ public static class SafeZipExtractor
         ZipArchive archive;
         try
         {
-            archive = ZipFile.OpenRead(zipPath);
+            // 日本語の Windows で作った ZIP はファイル名が Shift_JIS のことがある。UTF-8 の印がある項目は UTF-8 のまま読まれる
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            archive = ZipFile.Open(zipPath, ZipArchiveMode.Read, System.Text.Encoding.GetEncoding(932));
         }
         catch (InvalidDataException ex)
         {
@@ -66,8 +68,16 @@ public static class SafeZipExtractor
                     continue;
                 }
 
-                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                entry.ExtractToFile(target, overwrite: false);
+                try
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    entry.ExtractToFile(target, overwrite: false);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    // 同じ名前のファイルが2つある ZIP、空き容量の不足、ウイルス対策ソフトのロックなど
+                    throw new HubException($"{entry.FullName} を展開できませんでした。（{ex.Message}）", ex);
+                }
             }
         }
     }

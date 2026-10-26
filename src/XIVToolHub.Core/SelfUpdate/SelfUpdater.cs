@@ -44,7 +44,8 @@ public sealed class SelfUpdater
     /// </summary>
     public static bool CanUpdate(string? exePath) =>
         exePath is not null
-        && string.Equals(Path.GetFileName(exePath), ExeName, StringComparison.OrdinalIgnoreCase)
+        && Path.GetFileName(exePath).StartsWith(Path.GetFileNameWithoutExtension(ExeName), StringComparison.OrdinalIgnoreCase)
+        && exePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
         && !File.Exists(Path.Combine(Path.GetDirectoryName(exePath)!, "XIVToolHub.dll"));
 
     /// <summary>前回の更新で退避した古い exe を消す。起動直後に呼ぶ。</summary>

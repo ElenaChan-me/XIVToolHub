@@ -21,11 +21,13 @@ public sealed class GitHubReleaseClient
     public const long MaxAssetBytes = 1024L * 1024 * 1024;
 
     private const int ReleasesPerPage = 20;
+    private static readonly TimeSpan ReleaseCacheDuration = TimeSpan.FromMinutes(2);
     private const int MaxRedirects = 5;
     private const int CopyBufferSize = 81920;
 
     private readonly HttpClient _http;
     private readonly Func<string?> _tokenProvider;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (long At, Task<ReleaseInfo> Release)> _releaseCache = new();
 
     public GitHubReleaseClient(HttpClient http, Func<string?> tokenProvider)
     {
@@ -46,9 +48,36 @@ public sealed class GitHubReleaseClient
         return http;
     }
 
-    public async Task<ReleaseInfo> GetLatestReleaseAsync(GitHubSource source, CancellationToken cancellationToken)
+    /// <summary>最新のリリース。インストールの直前などは、必ず GitHub に聞く。</summary>
+    public Task<ReleaseInfo> GetLatestReleaseAsync(GitHubSource source, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(source);
+        return FetchLatestReleaseAsync(source, cancellationToken);
+    }
+
+    /// <summary>
+    /// 更新の確認用。同じリポジトリへの問い合わせは短い間だけ使い回す
+    /// （ボイスパックのように同じリポジトリのツールが複数あっても1回で済ませ、未認証の利用制限に当たりにくくする）。
+    /// </summary>
+    public Task<ReleaseInfo> GetLatestReleaseCachedAsync(GitHubSource source, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var key = $"{source.Owner}/{source.Repo}/{source.IncludePrerelease}".ToLowerInvariant();
+        var now = Environment.TickCount64;
+        if (_releaseCache.TryGetValue(key, out var cached) && now - cached.At < ReleaseCacheDuration.TotalMilliseconds && !cached.Release.IsFaulted && !cached.Release.IsCanceled)
+        {
+            return cached.Release;
+        }
+        var task = FetchLatestReleaseAsync(source, cancellationToken);
+        _releaseCache[key] = (now, task);
+        return task;
+    }
+
+    /// <summary>次の問い合わせでは必ず GitHub に聞き直す（「最新版を確認」を押したとき）。</summary>
+    public void ClearReleaseCache() => _releaseCache.Clear();
+
+    private async Task<ReleaseInfo> FetchLatestReleaseAsync(GitHubSource source, CancellationToken cancellationToken)
+    {
         var path = source.IncludePrerelease
             ? $"repos/{source.Owner}/{source.Repo}/releases?per_page={ReleasesPerPage}"
             : $"repos/{source.Owner}/{source.Repo}/releases/latest";
@@ -126,6 +155,12 @@ public sealed class GitHubReleaseClient
                 }
             }
             File.Move(tempPath, destinationPath, overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or HttpRequestException
+            || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            // 回線の切断・空き容量の不足・ウイルス対策ソフトによるロックなど。開発者の PC ではまず起きない
+            throw new HubException($"{asset.Name} をダウンロードできませんでした。ネットワークと空き容量を確認してください。（{ex.Message}）", ex);
         }
         finally
         {
@@ -222,6 +257,10 @@ public sealed class GitHubReleaseClient
         {
             throw new HubException("GitHub に接続できませんでした。ネットワークを確認してください。", ex);
         }
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new HubException("GitHub の応答がありませんでした。時間をおいてお試しください。", ex);
+        }
 
         if (response.IsSuccessStatusCode)
         {
@@ -234,7 +273,8 @@ public sealed class GitHubReleaseClient
         {
             // Private リポジトリはトークンがないと 404 になる
             HttpStatusCode.NotFound => new HubException(
-                $"{source.RepositoryUrl} のリリースが見つかりません。リポジトリ名、リリースの有無、Private の場合は GitHub トークンを確認してください。"),
+                $"{source.RepositoryUrl} のリリースが見つかりません。Private リポジトリの場合は、そのリポジトリを読める GitHub トークンが必要です"
+                + "（アクセス権の無いリポジトリは、トークンを登録しても取得できません）。"),
             HttpStatusCode.Unauthorized => new HubException("GitHub トークンが無効です。設定から登録し直してください。"),
             HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests => new HubException(
                 "GitHub の利用制限に達したか、アクセス権がありません。しばらく待つか、GitHub トークンを登録してください。"),

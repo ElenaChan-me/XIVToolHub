@@ -58,6 +58,11 @@ public sealed record ToolDefinition
     /// <summary>先にインストールしておく必要があるツールの ID。</summary>
     public IReadOnlyList<string> DependsOn { get; init; } = [];
 
+    /// <summary>
+    /// 一緒に入れると便利なツールの ID。選ぶと一緒に選ばれるが、必須ではないので選択を外せる（ACT と FF14 用のプラグインなど）。
+    /// </summary>
+    public IReadOnlyList<string> Includes { get; init; } = [];
+
     /// <summary>アプリを起動するときの引数。</summary>
     public string LaunchArguments { get; init; } = "";
 
