@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Threading;
+using XIVToolHub.App.Infrastructure;
 using XIVToolHub.App.Services;
 using XIVToolHub.App.ViewModels;
 using XIVToolHub.App.Views;
@@ -48,7 +49,9 @@ public partial class App : Application
         }
 
         var dalamud = new DalamudConfigEditor(paths.DalamudConfigPath, gameDetector, clock);
-        var act = new ActConfigEditor(paths.ToolDirectory(ToolCatalog.ActToolId), ProcessNameDetector.Act, clock);
+        // 利用者が別に入れている ACT が起動していても、ハブの ACT の更新は止めない
+        var hubAct = new ProcessInFolderDetector(paths.ToolDirectory(ToolCatalog.ActToolId), "Advanced Combat Tracker", "ACTx86");
+        var act = new ActConfigEditor(paths.ToolDirectory(ToolCatalog.ActToolId), hubAct, clock);
         // フォントの配布元や Dalamud の配布サーバーは GitHub ではないため、GitHub 用の設定を持たない別のクライアントを使う
         _fontHttp = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
         _fontHttp.DefaultRequestHeaders.UserAgent.ParseAdd("XIVToolHub");
@@ -59,12 +62,15 @@ public partial class App : Application
             () => catalog.VoicePackDirectories(installed));
         var dialogs = new WpfDialogService(github, tokenStore);
         var launcher = new ToolLauncher(paths);
-        var triggeventDetector = new ProcessInFolderDetector("javaw", paths.ToolDirectory(ToolCatalog.TriggeventToolId));
-        var launchSequence = new LaunchSequence(launcher.Launch, ProcessNameDetector.Act, triggeventDetector, clock);
+        var triggeventDetector = new ProcessInFolderDetector(paths.ToolDirectory(ToolCatalog.TriggeventToolId), "javaw");
+        var launchSequence = new LaunchSequence(launcher.Launch, hubAct, triggeventDetector, clock, anyAct: ProcessNameDetector.Act);
         var viewModel = new MainViewModel(catalog, installed, installer, launcher, fonts, settings, ThemeManager.Apply, paths, dialogs, clock,
             new PatchStatusChecker(paths.XivLauncherConfigPath, _fontHttp, github), CreateSelfUpdater(github, paths), launchSequence, Restart,
-            new UpdateBlockers(ProcessNameDetector.Act, triggeventDetector, gameDetector));
+            new UpdateBlockers(hubAct, triggeventDetector, gameDetector));
 
+        AsyncRelayCommand.UnhandledError = ex =>
+            MessageBox.Show($"処理中に予期しないエラーが発生しました。もう一度お試しください。{Environment.NewLine}{ex.Message}", "XIVToolHub",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
         var window = new MainWindow(viewModel);
         MainWindow = window;
         window.Show();

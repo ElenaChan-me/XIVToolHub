@@ -89,7 +89,8 @@ public sealed class ToolInstaller
 
         Directory.CreateDirectory(_paths.DownloadsDirectory);
         var downloadPath = Path.Combine(_paths.DownloadsDirectory, $"{tool.Id}-{Guid.NewGuid():N}.zip");
-        var stagingPath = Path.Combine(_paths.StagingDirectory, $"{tool.Id}-{Guid.NewGuid():N}");
+        // JRE を同梱したツールは階層が深いので、作業用のフォルダ名は短くする
+        var stagingPath = Path.Combine(_paths.StagingDirectory, Guid.NewGuid().ToString("N")[..8]);
         try
         {
             Report($"{asset.Name} をダウンロードしています", 0);
@@ -226,7 +227,7 @@ public sealed class ToolInstaller
     public async Task<ReleaseInfo> GetLatestAsync(ToolDefinition tool, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(tool);
-        return await _github.GetLatestReleaseAsync(tool.Source, cancellationToken).ConfigureAwait(false);
+        return await _github.GetLatestReleaseCachedAsync(tool.Source, cancellationToken).ConfigureAwait(false);
     }
 
     private static ToolPreferences? ResolvePreferences(ToolDefinition tool, InstalledTool? current, ToolPreferences? requested)

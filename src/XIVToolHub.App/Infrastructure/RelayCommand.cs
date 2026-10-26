@@ -41,6 +41,9 @@ public sealed class AsyncRelayCommand(Func<Task> execute, Func<bool>? canExecute
 {
     private bool _running;
 
+    /// <summary>処理の中で想定外の例外が起きたときに知らせる先。アプリの起動時に設定する。</summary>
+    public static Action<Exception>? UnhandledError { get; set; }
+
     public event EventHandler? CanExecuteChanged
     {
         add => CommandManager.RequerySuggested += value;
@@ -60,6 +63,10 @@ public sealed class AsyncRelayCommand(Func<Task> execute, Func<bool>? canExecute
         try
         {
             await execute();
+        }
+        catch (Exception ex) when (UnhandledError is not null && ex is not OutOfMemoryException)
+        {
+            UnhandledError(ex);
         }
         finally
         {

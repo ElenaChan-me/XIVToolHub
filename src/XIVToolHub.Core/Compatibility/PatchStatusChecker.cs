@@ -82,7 +82,7 @@ public sealed class PatchStatusChecker
         ReleaseInfo? act = null;
         try
         {
-            act = await _github.GetLatestReleaseAsync(ActPluginSource, cancellationToken).ConfigureAwait(false);
+            act = await _github.GetLatestReleaseCachedAsync(ActPluginSource, cancellationToken).ConfigureAwait(false);
         }
         catch (HubException ex)
         {

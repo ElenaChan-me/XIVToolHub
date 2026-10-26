@@ -73,7 +73,7 @@
       "act",
       "ffxiv-act-plugin"
     ],
-    "notes": "WebSocket サーバー（127.0.0.1:10501）は、ACT を起動すると自動で始まるように設定します。"
+    "notes": "WebSocket サーバー（127.0.0.1:10501）は、ACT を起動すると自動で始まるように設定します。オーバーレイの表示には Microsoft Visual C++ 再頒布可能パッケージ（x64）が必要です。"
   },
   {
     "id": "act-localization",
