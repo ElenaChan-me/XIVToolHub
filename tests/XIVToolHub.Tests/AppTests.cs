@@ -1,3 +1,4 @@
+using System.Net;
 using XIVToolHub.App.Services;
 using XIVToolHub.App.ViewModels;
 using XIVToolHub.Core;
@@ -157,6 +158,69 @@ public class AppTests
         Assert.Equal("r2", app.InstalledVersion);
         Assert.Equal("exe-r2", File.ReadAllText(Path.Combine(paths.ToolDirectory("my-app"), "bin", "app.exe")));
         Assert.Equal(ToolState.Installed, app.State);
+    }
+
+    [Fact]
+    public async Task Install_ShowsProgressAndKeepsOtherToolsUsable()
+    {
+        using var temp = new TempDirectory();
+        var paths = temp.CreatePaths();
+        var handler = new FakeGitHubHandler();
+        handler.Json("/repos/owner/app/releases/latest", TestData.ReleaseJson("owner", "app", "r1", (1, "app-win.zip")));
+        // ダウンロードを途中で止め、処理中の画面の状態を確かめる
+        var gate = new TaskCompletionSource();
+        var zip = TestData.Zip(("bin/app.exe", "exe"));
+        handler.Route("/repos/owner/app/releases/assets/1", _ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StreamContent(new GatedStream(zip, gate.Task)),
+        });
+        var catalog = new ToolCatalog(paths);
+        catalog.AddUserTool(TestData.App("installing-app"));
+        catalog.AddUserTool(TestData.App("other-app"));
+
+        var clock = new ManualClock();
+        var game = new FakeGameDetector();
+        var github = new GitHubReleaseClient(new HttpClient(handler) { BaseAddress = new Uri(GitHubReleaseClient.ApiBaseUrl) }, () => null);
+        var installed = new InstalledStore(paths);
+        // もう1つのツールはインストール済みにしておく
+        Directory.CreateDirectory(Path.Combine(paths.ToolDirectory("other-app"), "bin"));
+        File.WriteAllText(Path.Combine(paths.ToolDirectory("other-app"), "bin", "app.exe"), "exe");
+        installed.Set(new InstalledTool { ToolId = "other-app", Version = "r1", AssetName = "app-win.zip", InstallDirectory = paths.ToolDirectory("other-app"), InstalledAt = clock.GetLocalNow() });
+        var installer = new ToolInstaller(paths, github, installed, new DalamudConfigEditor(paths.DalamudConfigPath, game, clock), new ActConfigEditor(paths.ToolDirectory(ToolCatalog.ActToolId), new FakeGameDetector(), clock), game, clock);
+        var dialogs = new RecordingDialogs();
+        var vm = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), new FontStore(paths, new HttpClient()), new HubSettingsStore(paths), _ => { }, paths, dialogs, clock);
+        var target = vm.Tools.Single(t => t.Id == "installing-app");
+        var other = vm.Tools.Single(t => t.Id == "other-app");
+
+        target.IsSelected = true;
+        vm.InstallSelectedCommand.Execute(null);
+        await WaitUntil(() => vm.OverallProgressText.Contains("ダウンロード", StringComparison.Ordinal));
+
+        Assert.True(vm.IsInstalling);
+        Assert.StartsWith("1/1", vm.OverallProgressText, StringComparison.Ordinal);
+        Assert.InRange(vm.OverallProgress, 0.0, 0.9);
+        // 入れ替え中のツールは起動できないが、ほかのツールの起動と選択の操作はできる
+        Assert.False(vm.LaunchCommand.CanExecute(target));
+        Assert.True(vm.LaunchCommand.CanExecute(other));
+        Assert.True(vm.SelectAllCommand.CanExecute(null));
+        Assert.True(vm.ClearSelectionCommand.CanExecute(null));
+
+        gate.SetResult();
+        await WaitUntil(() => !vm.IsInstalling && dialogs.Infos.Count > 0);
+
+        Assert.False(vm.IsInstalling);
+        Assert.Equal("r1", target.InstalledVersion);
+        Assert.True(vm.LaunchCommand.CanExecute(target));
+        Assert.True(vm.SelectAllCommand.CanExecute(null));
+    }
+
+    private sealed class GatedStream(byte[] data, Task gate) : MemoryStream(data)
+    {
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            await gate.WaitAsync(cancellationToken);
+            return await base.ReadAsync(buffer, cancellationToken);
+        }
     }
 
     private static async Task WaitUntil(Func<bool> condition)

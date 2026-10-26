@@ -76,6 +76,21 @@
             </TextBlock>
         </Border>
 
+        <!-- インストール・更新の全体の進み具合。どのツールの何をしているかと、全体の割合を出す -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource SurfaceAltBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,6"
+                Visibility="{Binding IsInstalling, Converter={StaticResource BoolToVisibility}}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Margin="12,0,0,0" VerticalAlignment="Center"
+                           Text="{Binding OverallProgress, StringFormat={}{0:P0}}" FontWeight="SemiBold" />
+                <StackPanel>
+                    <TextBlock Text="{Binding OverallProgressText}" TextTrimming="CharacterEllipsis" Margin="0,0,0,4" />
+                    <ProgressBar Value="{Binding OverallProgress, Mode=OneWay}" Maximum="1" Height="10"
+                                 AutomationProperties.Name="インストールの進み具合" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
         <Border DockPanel.Dock="Bottom" Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,5">
             <DockPanel>
