@@ -7,6 +7,7 @@ using XIVToolHub.Core.Storage;
 
 namespace XIVToolHub.Core.Install;
 
+/// <param name="Fraction">このツールの処理全体のうち、終わった割合（0〜1）。</param>
 public sealed record InstallProgress(string ToolId, string Stage, double? Fraction);
 
 public sealed record InstallResult(string ToolId, string Version, bool AlreadyLatest, bool DevModeEnabled);
@@ -17,6 +18,12 @@ public sealed record InstallResult(string ToolId, string Version, bool AlreadyLa
 /// </summary>
 public sealed class ToolInstaller
 {
+    // 1つのツールの処理のうち、各段階が始まる時点の割合
+    private const double ProgressChecking = 0.02;
+    private const double ProgressDownloadStart = 0.05;
+    private const double ProgressDownloadEnd = 0.85;
+    private const double ProgressInstalling = 0.95;
+
     private readonly HubPaths _paths;
     private readonly GitHubReleaseClient _github;
     private readonly InstalledStore _installed;
@@ -70,7 +77,7 @@ public sealed class ToolInstaller
             _act.EnsureEditable();
         }
 
-        Report("リリース情報を確認しています");
+        Report("リリース情報を確認しています", ProgressChecking);
         var release = await _github.GetLatestReleaseAsync(tool.Source, cancellationToken).ConfigureAwait(false);
         var asset = GitHubReleaseClient.SelectAsset(release, tool.Source.AssetPattern)
             ?? throw new HubException($"リリース {release.TagName} に「{tool.Source.AssetPattern}」に一致するファイルがありません。");
@@ -93,16 +100,17 @@ public sealed class ToolInstaller
         var stagingPath = Path.Combine(_paths.StagingDirectory, Guid.NewGuid().ToString("N")[..8]);
         try
         {
-            Report($"{asset.Name} をダウンロードしています", 0);
-            var downloadProgress = new Progress<double>(f => Report($"{asset.Name} をダウンロードしています", f));
+            Report($"{asset.Name} をダウンロードしています", ProgressDownloadStart);
+            var downloadProgress = new Progress<double>(f =>
+                Report($"{asset.Name} をダウンロードしています（{f:P0}）", ProgressDownloadStart + (ProgressDownloadEnd - ProgressDownloadStart) * f));
             await _github.DownloadAssetAsync(tool.Source, asset, downloadPath, downloadProgress, cancellationToken).ConfigureAwait(false);
 
-            Report("展開しています");
+            Report("展開しています", ProgressDownloadEnd);
             cancellationToken.ThrowIfCancellationRequested();
             SafeZipExtractor.Extract(downloadPath, stagingPath);
             VerifyContents(tool, stagingPath);
 
-            Report("インストールしています");
+            Report("インストールしています", ProgressInstalling);
             var installDirectory = _paths.ToolDirectory(tool.Id);
             var entryPath = Path.Combine(installDirectory, tool.EntryFile);
             var devModeEnabled = false;
