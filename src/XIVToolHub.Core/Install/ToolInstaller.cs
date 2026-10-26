@@ -120,6 +120,11 @@ public sealed class ToolInstaller
                         break;
                     case ToolKind.ActPlugin:
                         _act.Register(entryPath);
+                        // Triggevent Plus などがすぐ使えるよう、WebSocket サーバーを自動で始める設定にしておく
+                        if (tool.Id == ToolCatalog.OverlayPluginToolId)
+                        {
+                            OverlayPluginConfig.EnableWebSocket(_act.ActDirectory, _clock);
+                        }
                         break;
                 }
             });

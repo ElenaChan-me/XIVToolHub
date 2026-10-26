@@ -102,7 +102,7 @@ public class LaunchSequenceTests
         var path = Path.Combine(actDir, ActConfigEditor.ConfigFolderName, OverlayWebSocketSettings.ConfigFileName);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var flag = running ? "true" : "false";
-        File.WriteAllText(path, "{\"WSServerIP\":\"127.0.0.1\",\"WSServerPort\":" + port + ",\"WSServerRunning\":" + flag + "}");
+        File.WriteAllText(path, "{\"WSServerIP\":\"127.0.0.1\",\"WSServerPort\":" + port + ",\"WSServerSSL\":false,\"WSServerRunning\":" + flag + "}");
         return actDir;
     }
 
@@ -125,6 +125,24 @@ public class LaunchSequenceTests
         Assert.Equal(["act", "triggevent-jp"], launched);
         Assert.Equal([10600], probed);
         Assert.Equal(2, messages.Count);
+    }
+
+    [Fact]
+    public async Task TurnsOnStoppedServerBeforeStartingAct()
+    {
+        using var temp = new TempDirectory();
+        var actDir = WriteWsConfig(temp, running: false, port: 10777);
+        var launched = new List<string>();
+        var sequence = new LaunchSequence(t => launched.Add(t.Id), new FakeGameDetector(), new FakeGameDetector(), new ManualClock(),
+            (_, _) => Task.FromResult(true));
+
+        var messages = await sequence.RunAsync(Act, actDir, Triggevent, TimeSpan.FromSeconds(5), CancellationToken.None);
+
+        Assert.Equal(["act", "triggevent-jp"], launched);
+        Assert.Contains(messages, m => m.Contains("自動で開始する設定"));
+        Assert.DoesNotContain(messages, m => m.Contains("開始されていません"));
+        // 利用者が変えたポートはそのまま
+        Assert.Equal(new OverlayWebSocketSettings(10777, true), OverlayWebSocketSettings.Read(actDir));
     }
 
     [Fact]

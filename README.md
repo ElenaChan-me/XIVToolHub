@@ -45,14 +45,15 @@ Third-party tools are prohibited by the FINAL FANTASY XIV Terms of Service and m
 | Glamaholic Plus | Dalamud プラグイン | ElenaChan-me/Glamaholic-Plus | - |
 | ACT（Advanced Combat Tracker） | アプリ / Application | EQAditu/AdvancedCombatTracker | - |
 | FFXIV_ACT_Plugin | ACT プラグイン | ravahn/FFXIV_ACT_Plugin | ACT |
-| OverlayPlugin | ACT プラグイン | OverlayPlugin/OverlayPlugin | ACT |
+| OverlayPlugin | ACT プラグイン | OverlayPlugin/OverlayPlugin | ACT, FFXIV_ACT_Plugin |
+| ACT Localization Plus | ACT プラグイン | ElenaChan-me/ACT-Localization-Plus | ACT |
 | Triggevent Plus | アプリ / Application | ElenaChan-me/Triggevent-Plus | ACT, FFXIV_ACT_Plugin, OverlayPlugin |
 | Triggevent Plus ボイスパック（みあ・つきの） | ボイスパック / Voice pack | ElenaChan-me/Triggevent-VoiceGen（Private） | Triggevent Plus |
 
-ツールを選ぶと、必要なツールも自動で選択され、必要とされる側から順にインストールされます。
+ツールを選ぶと、必要なツールも自動で選択され、必要とされる側から順にインストールされます。ACT を選ぶと、FFXIV_ACT_Plugin・OverlayPlugin・ACT Localization Plus も一緒に選ばれます（不要なものは選択を外せます）。
 OverlayPlugin は、更新が止まっている ngld 版ではなく、後継の OverlayPlugin/OverlayPlugin を使います。
 
-Selecting a tool also selects the tools it requires, and they are installed in dependency order.
+Selecting a tool also selects the tools it requires, and they are installed in dependency order. Selecting ACT also selects FFXIV_ACT_Plugin, OverlayPlugin and ACT Localization Plus (they can be unselected).
 OverlayPlugin uses the maintained successor (OverlayPlugin/OverlayPlugin) rather than the inactive ngld version.
 
 ## ACT とプラグイン / ACT and its plugins
@@ -64,11 +65,14 @@ ACT は `%LOCALAPPDATA%\XIVToolHub\tools\act` にポータブル版としてイ�
 - 変更前には `Advanced Combat Tracker.config.xml.xivtoolhub-日時.bak` としてバックアップします。
 - ACT の起動中はプラグインのインストール・更新・削除を行いません。
 
-Triggevent を使うには、ACT の「Plugins」タブ → OverlayPlugin の設定で WebSocket サーバーを開始してください。
+OverlayPlugin をインストールしたときと「まとめて起動」で ACT を起動するときに、OverlayPlugin の WebSocket サーバーを自動で開始する設定（127.0.0.1:10501）にします。利用者が変えたポートなどはそのまま残します。
+
+ACT Localization Plus は、ACT 自身のローカライズの仕組みで ACT の画面を日本語・韓国語・中国語にします。表示言語はハブで選んだものになり、変えたときは ACT を再起動してください。
 
 ACT is installed as a portable copy under `%LOCALAPPDATA%\XIVToolHub\tools\act` and started with `-portable`; an existing ACT installation is not touched.
 ACT plugins are registered in the portable ACT configuration (with a backup), and nothing is changed while ACT is running.
-For Triggevent, start the OverlayPlugin WebSocket server in ACT.
+The OverlayPlugin WebSocket server (127.0.0.1:10501) is set to start automatically when OverlayPlugin is installed and when ACT is started with "Launch all"; custom ports are kept.
+ACT Localization Plus translates ACT's screens through ACT's own localization mechanism, in the language chosen in the hub.
 
 ## 表示言語とフォント / Display language and fonts
 

@@ -81,6 +81,18 @@ public sealed class LaunchSequence
         }
         else
         {
+            // 前回 ACT の画面でサーバーを止めていても、起動したら始まるようにする（起動中は ACT が書き戻すので触らない）
+            try
+            {
+                if (OverlayPluginConfig.EnableWebSocket(actDirectory, _clock))
+                {
+                    messages.Add("OverlayPlugin の WebSocket サーバーを自動で開始する設定にしました。");
+                }
+            }
+            catch (HubException ex)
+            {
+                messages.Add(ex.Message);
+            }
             _launch(act);
             messages.Add("ACT を起動しました。");
         }
