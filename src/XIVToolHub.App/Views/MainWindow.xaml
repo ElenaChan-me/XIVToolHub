@@ -34,6 +34,20 @@
             </DockPanel>
         </Border>
 
+        <!-- パッチの後などに更新をまとめて済ませられるよう、更新のあるツールを一覧の上に出す -->
+        <Border DockPanel.Dock="Top" Padding="12,6" Background="{DynamicResource UpdateBackground}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                Visibility="{Binding HasUpdates, Converter={StaticResource BoolToVisibility}}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="すべて更新" Command="{Binding UpdateAllCommand}" Style="{StaticResource PrimaryButton}" />
+                    <Button Content="やめる" Command="{Binding CancelUpdateAllCommand}"
+                            Visibility="{Binding IsWaitingForUpdateAll, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+                <TextBlock Text="{Binding UpdatesText}" Foreground="{DynamicResource UpdateBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
+            </DockPanel>
+        </Border>
+
         <!-- パッチ直後にツールが動かない理由がすぐ分かるよう、対応状況を一覧の上に出す -->
         <Border DockPanel.Dock="Top" Padding="12,6" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
                 Visibility="{Binding HasPatchStatus, Converter={StaticResource BoolToVisibility}}">
