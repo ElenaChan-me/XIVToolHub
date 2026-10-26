@@ -39,6 +39,10 @@ public sealed class MainViewModel : ObservableObject
     private string? _patchStatusText;
     private bool _patchNeedsAttention;
     private bool _isBusy;
+    // インストール・更新中のツール。ほかのツールの起動などは続けて使えるようにする
+    private readonly HashSet<string> _installing = [];
+    private double _overallProgress;
+    private string _overallProgressText = "";
     private ToolItemViewModel? _selectedItem;
 
     /// <param name="applyTheme">画面の配色を切り替える処理。</param>
@@ -65,9 +69,11 @@ public sealed class MainViewModel : ObservableObject
         RefreshCommand = new AsyncRelayCommand(CheckUpdatesAsync, () => !_isBusy);
         InstallSelectedCommand = new AsyncRelayCommand(InstallSelectedAsync, () => !_isBusy && Tools.Any(t => t.IsSelected));
         UninstallSelectedCommand = new RelayCommand(UninstallSelected, () => !_isBusy && Tools.Any(t => t.IsSelected && t.IsInstalled));
-        SelectAllCommand = new RelayCommand(() => SetSelection(true), () => !_isBusy);
-        ClearSelectionCommand = new RelayCommand(() => SetSelection(false), () => !_isBusy);
-        LaunchCommand = new RelayCommand<ToolItemViewModel>(Launch, t => !_isBusy && t.IsApplication && t.IsInstalled);
+        // 選択はインストール中でも変えてよい（処理するツールは押した時点で決まっている）
+        SelectAllCommand = new RelayCommand(() => SetSelection(true));
+        ClearSelectionCommand = new RelayCommand(() => SetSelection(false));
+        // インストール中でも、入れ替えていないツールは起動できる
+        LaunchCommand = new RelayCommand<ToolItemViewModel>(Launch, t => t.IsApplication && t.IsInstalled && !t.IsWorking && !_installing.Contains(t.Id));
         OpenFolderCommand = new RelayCommand<ToolItemViewModel>(t => _dialogs.OpenFolder(_paths.ToolDirectory(t.Id)), t => t.IsInstalled);
         OpenRepositoryCommand = new RelayCommand<ToolItemViewModel>(t => _dialogs.OpenUrl(t.Definition.Source.RepositoryUrl));
         AddToolCommand = new RelayCommand(AddTool, () => !_isBusy);
@@ -137,6 +143,14 @@ public sealed class MainViewModel : ObservableObject
             }
         }
     }
+
+    /// <summary>インストール・更新の最中か。画面の下に進み具合を出す。</summary>
+    public bool IsInstalling => _installing.Count > 0;
+
+    /// <summary>インストール・更新の全体の進み具合（0〜1）。</summary>
+    public double OverallProgress { get => _overallProgress; private set => SetProperty(ref _overallProgress, value); }
+
+    public string OverallProgressText { get => _overallProgressText; private set => SetProperty(ref _overallProgressText, value); }
 
     public IReadOnlyList<ThemeOption> Themes => HubThemes.All;
 
@@ -360,14 +374,30 @@ public sealed class MainViewModel : ObservableObject
         if (_blockers is not null)
         {
             using var wait = new CancellationTokenSource();
+            var ui = SynchronizationContext.Current;
             SetUpdateAllWait(wait, null);
             try
             {
                 var ready = await _blockers.WaitAsync([.. targets.Select(t => t.Definition)], blocking =>
                 {
                     var names = string.Join("・", blocking);
-                    SetUpdateAllWait(wait, $"{names} を終了すると、{targets.Count} 件の更新を始めます。");
-                    AddLog($"{names} の起動中は更新できないため、終了するのを待っています。");
+                    void Show()
+                    {
+                        if (_updateAllWait != wait)
+                        {
+                            return;
+                        }
+                        SetUpdateAllWait(wait, $"{names} を終了すると、{targets.Count} 件の更新を始めます。");
+                        AddLog($"{names} の起動中は更新できないため、終了するのを待っています。");
+                    }
+                    if (ui is null)
+                    {
+                        Show();
+                    }
+                    else
+                    {
+                        ui.Post(_ => Show(), null);
+                    }
                 }, UpdateBlockers.DefaultPollInterval, UpdateBlockers.DefaultTimeout, _clock, wait.Token);
                 if (!ready)
                 {
@@ -442,19 +472,28 @@ public sealed class MainViewModel : ObservableObject
         }
 
         IsBusy = true;
+        foreach (var t in targets)
+        {
+            _installing.Add(t.Id);
+        }
+        OnPropertyChanged(nameof(IsInstalling));
         var succeeded = 0;
         var devModeEnabled = false;
         try
         {
             // 1件ずつ処理し、失敗しても残りは続ける
-            foreach (var item in targets)
+            for (var index = 0; index < targets.Count; index++)
             {
+                var item = targets[index];
+                var position = index;
                 item.IsWorking = true;
                 item.Error = null;
+                SetOverallProgress(position, targets.Count, item, "準備しています", 0);
                 var progress = new Progress<InstallProgress>(p =>
                 {
                     item.ProgressText = p.Stage;
                     item.Progress = p.Fraction ?? item.Progress;
+                    SetOverallProgress(position, targets.Count, item, p.Stage, item.Progress);
                 });
                 try
                 {
@@ -484,6 +523,10 @@ public sealed class MainViewModel : ObservableObject
         }
         finally
         {
+            _installing.Clear();
+            OnPropertyChanged(nameof(IsInstalling));
+            OverallProgress = 0;
+            OverallProgressText = "";
             IsBusy = false;
         }
         RefreshVoicePacks(targets);
@@ -501,6 +544,12 @@ public sealed class MainViewModel : ObservableObject
         {
             _dialogs.ShowError(message + "\n\n失敗した理由はログを確認してください。");
         }
+    }
+
+    private void SetOverallProgress(int index, int count, ToolItemViewModel item, string stage, double fraction)
+    {
+        OverallProgress = (index + Math.Clamp(fraction, 0, 1)) / count;
+        OverallProgressText = $"{index + 1}/{count}  {item.Name}: {stage}";
     }
 
     /// <summary>
@@ -671,7 +720,12 @@ public sealed class MainViewModel : ObservableObject
         if (e.PropertyName == nameof(ToolItemViewModel.State))
         {
             OnUpdatesChanged();
+            CommandManager.InvalidateRequerySuggested();
             return;
+        }
+        if (e.PropertyName is nameof(ToolItemViewModel.IsSelected) or nameof(ToolItemViewModel.IsWorking))
+        {
+            CommandManager.InvalidateRequerySuggested();
         }
         if (e.PropertyName != nameof(ToolItemViewModel.IsSelected) || sender is not ToolItemViewModel { IsSelected: true } item)
         {
