@@ -120,6 +120,45 @@ public class AppTests
         Assert.NotNull(installed.Find("good-app"));
     }
 
+    [Fact]
+    public async Task UpdateAll_UpdatesOnlyToolsWithNewReleases()
+    {
+        using var temp = new TempDirectory();
+        var paths = temp.CreatePaths();
+        var handler = new FakeGitHubHandler();
+        handler.Json("/repos/owner/app/releases/latest", TestData.ReleaseJson("owner", "app", "r1", (1, "app-win.zip")));
+        handler.Bytes("/repos/owner/app/releases/assets/1", TestData.Zip(("bin/app.exe", "exe-r1")));
+        var catalog = new ToolCatalog(paths);
+        catalog.AddUserTool(TestData.App("my-app"));
+
+        var clock = new ManualClock();
+        var game = new FakeGameDetector();
+        var github = new GitHubReleaseClient(new HttpClient(handler) { BaseAddress = new Uri(GitHubReleaseClient.ApiBaseUrl) }, () => null);
+        var installed = new InstalledStore(paths);
+        var installer = new ToolInstaller(paths, github, installed, new DalamudConfigEditor(paths.DalamudConfigPath, game, clock), new ActConfigEditor(paths.ToolDirectory(ToolCatalog.ActToolId), new FakeGameDetector(), clock), game, clock);
+        await installer.InstallAsync(catalog.Find("my-app")!, false, null, CancellationToken.None);
+        var dialogs = new RecordingDialogs();
+        var blockers = new UpdateBlockers(new FakeGameDetector(), new FakeGameDetector(), game);
+        var vm = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), new FontStore(paths, new HttpClient()), new HubSettingsStore(paths), _ => { }, paths, dialogs, clock,
+            blockers: blockers);
+
+        // 新しいリリースが出たら、まとめて更新の対象になる
+        handler.Json("/repos/owner/app/releases/latest", TestData.ReleaseJson("owner", "app", "r2", (2, "app-win.zip")));
+        handler.Bytes("/repos/owner/app/releases/assets/2", TestData.Zip(("bin/app.exe", "exe-r2")));
+        await vm.CheckUpdatesAsync();
+        var app = vm.Tools.Single(t => t.Id == "my-app");
+        Assert.Equal(ToolState.UpdateAvailable, app.State);
+        Assert.Equal(1, vm.UpdateCount);
+        Assert.Contains(app.Name, vm.UpdatesText, StringComparison.Ordinal);
+
+        vm.UpdateAllCommand.Execute(null);
+        await WaitUntil(() => app.InstalledVersion == "r2");
+
+        Assert.Equal("r2", app.InstalledVersion);
+        Assert.Equal("exe-r2", File.ReadAllText(Path.Combine(paths.ToolDirectory("my-app"), "bin", "app.exe")));
+        Assert.Equal(ToolState.Installed, app.State);
+    }
+
     private static async Task WaitUntil(Func<bool> condition)
     {
         for (var i = 0; i < 200 && !condition(); i++)

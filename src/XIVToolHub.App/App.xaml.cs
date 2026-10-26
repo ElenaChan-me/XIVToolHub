@@ -59,15 +59,16 @@ public partial class App : Application
             () => catalog.VoicePackDirectories(installed));
         var dialogs = new WpfDialogService(github, tokenStore);
         var launcher = new ToolLauncher(paths);
-        var launchSequence = new LaunchSequence(launcher.Launch, ProcessNameDetector.Act,
-            new ProcessInFolderDetector("javaw", paths.ToolDirectory(ToolCatalog.TriggeventToolId)), clock);
+        var triggeventDetector = new ProcessInFolderDetector("javaw", paths.ToolDirectory(ToolCatalog.TriggeventToolId));
+        var launchSequence = new LaunchSequence(launcher.Launch, ProcessNameDetector.Act, triggeventDetector, clock);
         var viewModel = new MainViewModel(catalog, installed, installer, launcher, fonts, settings, ThemeManager.Apply, paths, dialogs, clock,
-            new PatchStatusChecker(paths.XivLauncherConfigPath, _fontHttp, github), CreateSelfUpdater(github, paths), launchSequence, Restart);
+            new PatchStatusChecker(paths.XivLauncherConfigPath, _fontHttp, github), CreateSelfUpdater(github, paths), launchSequence, Restart,
+            new UpdateBlockers(ProcessNameDetector.Act, triggeventDetector, gameDetector));
 
         var window = new MainWindow(viewModel);
         MainWindow = window;
         window.Show();
-        _ = viewModel.CheckUpdatesAsync();
+        _ = viewModel.StartupAsync();
     }
 
     protected override void OnExit(ExitEventArgs e)

@@ -32,6 +32,9 @@ public sealed class MainViewModel : ObservableObject
     private readonly SelfUpdater? _selfUpdater;
     private readonly LaunchSequence? _launchSequence;
     private readonly Action<string> _restart;
+    private readonly UpdateBlockers? _blockers;
+    private CancellationTokenSource? _updateAllWait;
+    private string? _updateAllWaitText;
     private ReleaseInfo? _selfUpdate;
     private string? _patchStatusText;
     private bool _patchNeedsAttention;
@@ -41,8 +44,9 @@ public sealed class MainViewModel : ObservableObject
     /// <param name="applyTheme">画面の配色を切り替える処理。</param>
     public MainViewModel(ToolCatalog catalog, InstalledStore installed, ToolInstaller installer, ToolLauncher launcher, FontStore fonts, HubSettingsStore settings,
         Action<string> applyTheme, HubPaths paths, IDialogService dialogs, TimeProvider clock, PatchStatusChecker? patchStatus = null,
-        SelfUpdater? selfUpdater = null, LaunchSequence? launchSequence = null, Action<string>? restart = null)
+        SelfUpdater? selfUpdater = null, LaunchSequence? launchSequence = null, Action<string>? restart = null, UpdateBlockers? blockers = null)
     {
+        _blockers = blockers;
         _patchStatus = patchStatus;
         _selfUpdater = selfUpdater;
         _launchSequence = launchSequence;
@@ -72,6 +76,8 @@ public sealed class MainViewModel : ObservableObject
         ToolSettingsCommand = new RelayCommand<ToolItemViewModel>(OpenToolSettings, t => !_isBusy && t.CanConfigure);
         UpdateSelfCommand = new AsyncRelayCommand(UpdateSelfAsync, () => !_isBusy && _selfUpdate is not null);
         LaunchAllCommand = new AsyncRelayCommand(LaunchAllAsync, () => !_isBusy && CanLaunchAll);
+        UpdateAllCommand = new AsyncRelayCommand(UpdateAllAsync, () => !_isBusy && _updateAllWait is null && UpdateCount > 0);
+        CancelUpdateAllCommand = new RelayCommand(() => _updateAllWait?.Cancel(), () => _updateAllWait is not null);
 
         ReloadTools();
     }
@@ -94,6 +100,19 @@ public sealed class MainViewModel : ObservableObject
     public ICommand ToolSettingsCommand { get; }
     public ICommand UpdateSelfCommand { get; }
     public ICommand LaunchAllCommand { get; }
+    public ICommand UpdateAllCommand { get; }
+    public ICommand CancelUpdateAllCommand { get; }
+
+    /// <summary>更新のあるインストール済みツールの数。</summary>
+    public int UpdateCount => Tools.Count(t => t.State == ToolState.UpdateAvailable);
+
+    public bool HasUpdates => UpdateCount > 0 || _updateAllWait is not null;
+
+    /// <summary>まとめて更新の案内。待っている間は、何が終わるのを待っているかを出す。</summary>
+    public string UpdatesText => _updateAllWaitText
+        ?? $"{UpdateCount} 件のツールに更新があります：{string.Join("、", Tools.Where(t => t.State == ToolState.UpdateAvailable).Select(t => t.Name))}";
+
+    public bool IsWaitingForUpdateAll => _updateAllWait is not null;
 
     /// <summary>XIVToolHub の新しいバージョンがあるときの案内。無ければ null。</summary>
     public string? SelfUpdateText => _selfUpdate is null || _selfUpdater is null
@@ -250,10 +269,12 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private async Task UpdateSelfAsync()
+    private Task UpdateSelfAsync() => UpdateSelfAsync(confirmed: false);
+
+    private async Task UpdateSelfAsync(bool confirmed)
     {
         if (_selfUpdater is null || _selfUpdate is not { } release
-            || !_dialogs.Confirm($"XIVToolHub を {release.TagName} に更新して再起動しますか？", "XIVToolHub の更新"))
+            || (!confirmed && !_dialogs.Confirm($"XIVToolHub を {release.TagName} に更新して再起動しますか？", "XIVToolHub の更新")))
         {
             return;
         }
@@ -326,13 +347,83 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private async Task InstallSelectedAsync()
+    /// <summary>
+    /// 更新のあるツールをまとめて更新する。ACT などが起動中で入れ替えられないときは、終了するまで待ってから始める。
+    /// </summary>
+    private async Task UpdateAllAsync()
+    {
+        var targets = Tools.Where(t => t.State == ToolState.UpdateAvailable).ToList();
+        if (targets.Count == 0)
+        {
+            return;
+        }
+        if (_blockers is not null)
+        {
+            using var wait = new CancellationTokenSource();
+            SetUpdateAllWait(wait, null);
+            try
+            {
+                var ready = await _blockers.WaitAsync([.. targets.Select(t => t.Definition)], blocking =>
+                {
+                    var names = string.Join("・", blocking);
+                    SetUpdateAllWait(wait, $"{names} を終了すると、{targets.Count} 件の更新を始めます。");
+                    AddLog($"{names} の起動中は更新できないため、終了するのを待っています。");
+                }, UpdateBlockers.DefaultPollInterval, UpdateBlockers.DefaultTimeout, _clock, wait.Token);
+                if (!ready)
+                {
+                    AddLog("待ち時間が長くなったため、まとめて更新をやめました。");
+                    return;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                AddLog("まとめて更新をやめました。");
+                return;
+            }
+            finally
+            {
+                SetUpdateAllWait(null, null);
+            }
+        }
+        await InstallToolsAsync(targets.Select(t => t.Id));
+    }
+
+    private void SetUpdateAllWait(CancellationTokenSource? wait, string? text)
+    {
+        _updateAllWait = wait;
+        _updateAllWaitText = text;
+        OnUpdatesChanged();
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void OnUpdatesChanged()
+    {
+        OnPropertyChanged(nameof(UpdateCount));
+        OnPropertyChanged(nameof(HasUpdates));
+        OnPropertyChanged(nameof(UpdatesText));
+        OnPropertyChanged(nameof(IsWaitingForUpdateAll));
+    }
+
+    /// <summary>起動直後の確認。XIVToolHub 自身に更新があれば、見落とさないようその場で聞く。</summary>
+    public async Task StartupAsync()
+    {
+        await CheckUpdatesAsync();
+        if (_selfUpdate is { } release
+            && _dialogs.Confirm($"XIVToolHub の新しいバージョン {release.TagName} があります。今すぐ更新して再起動しますか？", "XIVToolHub の更新"))
+        {
+            await UpdateSelfAsync(confirmed: true);
+        }
+    }
+
+    private Task InstallSelectedAsync() => InstallToolsAsync(Tools.Where(t => t.IsSelected).Select(t => t.Id));
+
+    private async Task InstallToolsAsync(IEnumerable<string> ids)
     {
         List<ToolItemViewModel> targets;
         try
         {
             // 依存されるツールから順に処理する
-            var order = _catalog.ResolveInstallOrder(Tools.Where(t => t.IsSelected).Select(t => t.Id));
+            var order = _catalog.ResolveInstallOrder(ids);
             targets = [.. order.Select(d => Tools.First(t => t.Id == d.Id))];
         }
         catch (HubException ex)
@@ -569,6 +660,7 @@ public sealed class MainViewModel : ObservableObject
             item.PropertyChanged += OnToolPropertyChanged;
             Tools.Add(item);
         }
+        OnUpdatesChanged();
     }
 
     /// <summary>
@@ -576,6 +668,11 @@ public sealed class MainViewModel : ObservableObject
     /// </summary>
     private void OnToolPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(ToolItemViewModel.State))
+        {
+            OnUpdatesChanged();
+            return;
+        }
         if (e.PropertyName != nameof(ToolItemViewModel.IsSelected) || sender is not ToolItemViewModel { IsSelected: true } item)
         {
             return;
