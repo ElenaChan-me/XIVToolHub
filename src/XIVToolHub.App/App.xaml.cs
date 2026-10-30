@@ -12,6 +12,7 @@ using XIVToolHub.Core.Dalamud;
 using XIVToolHub.Core.Fonts;
 using XIVToolHub.Core.GitHub;
 using XIVToolHub.Core.Install;
+using XIVToolHub.Core.Prerequisites;
 using XIVToolHub.Core.SelfUpdate;
 using XIVToolHub.Core.Storage;
 
@@ -66,7 +67,8 @@ public partial class App : Application
         var launchSequence = new LaunchSequence(launcher.Launch, hubAct, triggeventDetector, clock, anyAct: ProcessNameDetector.Act);
         var viewModel = new MainViewModel(catalog, installed, installer, launcher, fonts, settings, ThemeManager.Apply, paths, dialogs, clock,
             new PatchStatusChecker(paths.XivLauncherConfigPath, _fontHttp, github), CreateSelfUpdater(github, paths), launchSequence, Restart,
-            new UpdateBlockers(hubAct, triggeventDetector, gameDetector));
+            new UpdateBlockers(hubAct, triggeventDetector, gameDetector),
+            new PrerequisiteManager(paths, _fontHttp, github));
 
         AsyncRelayCommand.UnhandledError = ex =>
             MessageBox.Show($"処理中に予期しないエラーが発生しました。もう一度お試しください。{Environment.NewLine}{ex.Message}", "XIVToolHub",

@@ -9,6 +9,7 @@ using XIVToolHub.Core.Fonts;
 using XIVToolHub.Core.Install;
 using XIVToolHub.Core.GitHub;
 using XIVToolHub.Core.Models;
+using XIVToolHub.Core.Prerequisites;
 using XIVToolHub.Core.SelfUpdate;
 using XIVToolHub.Core.Storage;
 
@@ -33,6 +34,11 @@ public sealed class MainViewModel : ObservableObject
     private readonly LaunchSequence? _launchSequence;
     private readonly Action<string> _restart;
     private readonly UpdateBlockers? _blockers;
+    private readonly PrerequisiteManager? _prerequisites;
+    // 画面のスレッド。チェックボックスの変更の最中に確認の画面を出さないよう、終わってから聞くために使う
+    private readonly SynchronizationContext? _ui;
+    // 「すべて選択」の最中は、ツールごとに確認しない
+    private bool _bulkSelecting;
     private CancellationTokenSource? _updateAllWait;
     private string? _updateAllWaitText;
     private ReleaseInfo? _selfUpdate;
@@ -48,9 +54,12 @@ public sealed class MainViewModel : ObservableObject
     /// <param name="applyTheme">画面の配色を切り替える処理。</param>
     public MainViewModel(ToolCatalog catalog, InstalledStore installed, ToolInstaller installer, ToolLauncher launcher, FontStore fonts, HubSettingsStore settings,
         Action<string> applyTheme, HubPaths paths, IDialogService dialogs, TimeProvider clock, PatchStatusChecker? patchStatus = null,
-        SelfUpdater? selfUpdater = null, LaunchSequence? launchSequence = null, Action<string>? restart = null, UpdateBlockers? blockers = null)
+        SelfUpdater? selfUpdater = null, LaunchSequence? launchSequence = null, Action<string>? restart = null, UpdateBlockers? blockers = null,
+        PrerequisiteManager? prerequisites = null)
     {
         _blockers = blockers;
+        _prerequisites = prerequisites;
+        _ui = SynchronizationContext.Current as System.Windows.Threading.DispatcherSynchronizationContext;
         _patchStatus = patchStatus;
         _selfUpdater = selfUpdater;
         _launchSequence = launchSequence;
@@ -479,8 +488,10 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsInstalling));
         var succeeded = 0;
         var devModeEnabled = false;
+        var requested = targets.Count;
         try
         {
+            targets = await InstallPrerequisitesAsync(targets);
             // 1件ずつ処理し、失敗しても残りは続ける
             for (var index = 0; index < targets.Count; index++)
             {
@@ -531,12 +542,12 @@ public sealed class MainViewModel : ObservableObject
         }
         RefreshVoicePacks(targets);
 
-        var message = $"{targets.Count} 件中 {succeeded} 件を処理しました。";
+        var message = $"{requested} 件中 {succeeded} 件を処理しました。";
         if (devModeEnabled)
         {
             message += "\n\nDalamud の開発モードを有効にしました。次回ゲーム起動時から、インストールしたプラグインが読み込まれます。";
         }
-        if (succeeded == targets.Count)
+        if (succeeded == requested)
         {
             _dialogs.ShowInfo(message);
         }
@@ -680,9 +691,17 @@ public sealed class MainViewModel : ObservableObject
 
     private void SetSelection(bool selected)
     {
-        foreach (var item in Tools)
+        _bulkSelecting = true;
+        try
         {
-            item.IsSelected = selected;
+            foreach (var item in Tools)
+            {
+                item.IsSelected = selected;
+            }
+        }
+        finally
+        {
+            _bulkSelecting = false;
         }
     }
 
@@ -727,28 +746,123 @@ public sealed class MainViewModel : ObservableObject
         {
             CommandManager.InvalidateRequerySuggested();
         }
-        if (e.PropertyName != nameof(ToolItemViewModel.IsSelected) || sender is not ToolItemViewModel { IsSelected: true } item)
+        if (e.PropertyName != nameof(ToolItemViewModel.IsSelected) || sender is not ToolItemViewModel { IsSelected: true } item || _bulkSelecting)
         {
             return;
         }
-        foreach (var includedId in item.Definition.Includes)
+        // チェックボックスの値を反映している最中に選択を変えると画面に反映されないので、反映が終わってから聞く
+        if (_ui is null)
         {
-            var included = Tools.FirstOrDefault(t => t.Id == includedId);
-            if (included is { IsSelected: false, IsInstalled: false })
+            ConfirmRelatedTools(item);
+        }
+        else
+        {
+            _ui.Post(_ => ConfirmRelatedTools(item), null);
+        }
+    }
+
+    /// <summary>
+    /// 選んだツールに必要なツール・一緒に使うツールのうち、まだ入っていないものを一緒に入れるか聞く。
+    /// 必要なツールを断った場合は、そのツールだけでは動かないので選択を外す。
+    /// </summary>
+    private void ConfirmRelatedTools(ToolItemViewModel item)
+    {
+        if (!item.IsSelected)
+        {
+            return;
+        }
+        var required = item.Definition.DependsOn
+            .Select(id => Tools.FirstOrDefault(t => t.Id == id))
+            .OfType<ToolItemViewModel>()
+            .Where(t => !t.IsInstalled && !t.IsSelected)
+            .ToList();
+        if (required.Count > 0)
+        {
+            var list = string.Join("\n", required.Select(t => "・" + t.Name));
+            if (_dialogs.Confirm($"{item.Name} を使うには、次のツールが必要です。\n\n{list}\n\n同時にインストールしますか？", "必要なツール"))
             {
-                included.IsSelected = true;
-                AddLog($"{item.Name} と一緒に使う {included.Name} も選択しました（不要なら選択を外せます）。");
+                foreach (var t in required)
+                {
+                    t.IsSelected = true;
+                }
+                AddLog($"{item.Name} に必要な {string.Join("、", required.Select(t => t.Name))} も選択しました。");
+            }
+            else
+            {
+                item.IsSelected = false;
+                AddLog($"{item.Name} は必要なツールが無いと動かないため、選択を外しました。");
+                return;
             }
         }
-        foreach (var dependencyId in item.Definition.DependsOn)
+        var optional = item.Definition.Includes
+            .Select(id => Tools.FirstOrDefault(t => t.Id == id))
+            .OfType<ToolItemViewModel>()
+            .Where(t => !t.IsInstalled && !t.IsSelected)
+            .ToList();
+        if (optional.Count > 0)
         {
-            var dependency = Tools.FirstOrDefault(t => t.Id == dependencyId);
-            if (dependency is { IsSelected: false })
+            var list = string.Join("\n", optional.Select(t => "・" + t.Name));
+            if (_dialogs.Confirm($"{item.Name} と一緒に使う、次のプラグインも同時にインストールしますか？\n（入れなくても {item.Name} は動きます）\n\n{list}", "一緒に使うプラグイン"))
             {
-                dependency.IsSelected = true;
-                AddLog($"{item.Name} に必要な {dependency.Name} も選択しました。");
+                foreach (var t in optional)
+                {
+                    t.IsSelected = true;
+                }
+                AddLog($"{item.Name} と一緒に使う {string.Join("、", optional.Select(t => t.Name))} も選択しました。");
             }
         }
+    }
+
+    /// <summary>
+    /// 選んだツールの前提のソフト（VC++ ランタイム・XIVLauncher など）のうち、入っていないものを入れるか聞いて入れる。
+    /// 断った、または入れられなかった前提を必要とするツールは、今回はインストールしない。
+    /// </summary>
+    private async Task<List<ToolItemViewModel>> InstallPrerequisitesAsync(List<ToolItemViewModel> targets)
+    {
+        if (_prerequisites is null)
+        {
+            return targets;
+        }
+        var missing = targets
+            .SelectMany(t => _prerequisites.Missing(t.Definition).Select(p => (Prerequisite: p, Tool: t)))
+            .GroupBy(x => x.Prerequisite.Id)
+            .ToList();
+        var skipped = new HashSet<string>();
+        foreach (var group in missing)
+        {
+            var prerequisite = group.First().Prerequisite;
+            var tools = group.Select(x => x.Tool).ToList();
+            var names = string.Join("、", tools.Select(t => t.Name));
+            var admin = prerequisite.NeedsAdmin ? "\n\nWindows の管理者の確認が表示されます。" : "";
+            if (!_dialogs.Confirm($"{names} には「{prerequisite.Name}」が必要です。\n{prerequisite.Description}\n\n公式の配布元から取得してインストールしますか？{admin}", "前提のソフト"))
+            {
+                AddLog($"{prerequisite.Name} を入れないため、{names} のインストールを見送りました。");
+                skipped.UnionWith(tools.Select(t => t.Id));
+                continue;
+            }
+            OverallProgressText = $"前提のソフト: {prerequisite.Name} を準備しています";
+            OverallProgress = 0;
+            var progress = new Progress<double>(f =>
+            {
+                OverallProgress = f;
+                OverallProgressText = $"前提のソフト: {prerequisite.Name} をダウンロードしています（{f:P0}）";
+            });
+            try
+            {
+                await _prerequisites.InstallAsync(prerequisite, progress, CancellationToken.None);
+                AddLog($"{prerequisite.Name} をインストールしました。");
+            }
+            catch (HubException ex)
+            {
+                AddLog(ex.Message);
+                foreach (var t in tools)
+                {
+                    t.Error = ex.Message;
+                }
+                skipped.UnionWith(tools.Select(t => t.Id));
+            }
+        }
+        return [.. targets.Where(t => !skipped.Contains(t.Id))];
     }
 
     private void AddLog(string message)
