@@ -182,8 +182,10 @@ public class ActSupportTests
         Assert.False(Directory.Exists(paths.ToolDirectory("ffxiv-act-plugin")));
     }
 
-    [Fact]
-    public void SelectingTool_AlsoSelectsDependencies()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SelectingTool_AsksBeforeSelectingRelatedTools(bool answer)
     {
         using var temp = new TempDirectory();
         var paths = temp.CreatePaths();
@@ -194,19 +196,49 @@ public class ActSupportTests
         var github = new GitHubReleaseClient(new HttpClient(new FakeGitHubHandler()) { BaseAddress = new Uri(GitHubReleaseClient.ApiBaseUrl) }, () => null);
         var installer = new ToolInstaller(paths, github, installed, new DalamudConfigEditor(paths.DalamudConfigPath, game, clock),
             new ActConfigEditor(paths.ToolDirectory(ToolCatalog.ActToolId), game, clock), game, clock);
-        var vm = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), new FontStore(paths, new HttpClient()), new HubSettingsStore(paths), _ => { }, paths, new NullDialogs(), clock);
+        var dialogs = new NullDialogs { Answer = answer };
+        var vm = new MainViewModel(catalog, installed, installer, new ToolLauncher(paths), new FontStore(paths, new HttpClient()), new HubSettingsStore(paths), _ => { }, paths, dialogs, clock);
 
         vm.Tools.Single(t => t.Id == "triggevent-jp").IsSelected = true;
 
-        // ACT を選ぶと、FF14 用のプラグインと ACT の日本語化も一緒に選ばれる
-        Assert.Equal(
-            ["act", "act-localization", "ffxiv-act-plugin", "overlayplugin", "triggevent-jp"],
-            vm.Tools.Where(t => t.IsSelected).Select(t => t.Id).Order());
-        // 一緒に選ばれたものは必須ではないので外せる
-        vm.Tools.Single(t => t.Id == "act-localization").IsSelected = false;
-        Assert.False(vm.Tools.Single(t => t.Id == "act-localization").IsSelected);
+        // まず必要なツールを一緒に入れるか聞く
+        Assert.Contains("次のツールが必要です", dialogs.Confirms[0], StringComparison.Ordinal);
+        Assert.Contains("OverlayPlugin", dialogs.Confirms[0], StringComparison.Ordinal);
+        if (answer)
+        {
+            // ACT を選ぶと、一緒に使うプラグイン（ACT の日本語化）も入れるか聞く
+            Assert.Contains(dialogs.Confirms, m => m.Contains("一緒に使う", StringComparison.Ordinal) && m.Contains("ACT Localization Plus", StringComparison.Ordinal));
+            Assert.Equal(
+                ["act", "act-localization", "ffxiv-act-plugin", "overlayplugin", "triggevent-jp"],
+                vm.Tools.Where(t => t.IsSelected).Select(t => t.Id).Order());
+        }
+        else
+        {
+            // 必要なツールを断ったら、それだけでは動かないので選択を外す
+            Assert.DoesNotContain(vm.Tools, t => t.IsSelected);
+        }
         Assert.Contains("ACT", vm.Tools.Single(t => t.Id == "triggevent-jp").DependsOnText, StringComparison.Ordinal);
         Assert.Equal("ACT プラグイン", vm.Tools.Single(t => t.Id == "overlayplugin").KindLabel);
+    }
+
+    [Fact]
+    public void SelectAll_DoesNotAskForEachTool()
+    {
+        using var temp = new TempDirectory();
+        var paths = temp.CreatePaths();
+        var clock = new ManualClock();
+        var game = new FakeGameDetector();
+        var installed = new InstalledStore(paths);
+        var github = new GitHubReleaseClient(new HttpClient(new FakeGitHubHandler()) { BaseAddress = new Uri(GitHubReleaseClient.ApiBaseUrl) }, () => null);
+        var installer = new ToolInstaller(paths, github, installed, new DalamudConfigEditor(paths.DalamudConfigPath, game, clock),
+            new ActConfigEditor(paths.ToolDirectory(ToolCatalog.ActToolId), game, clock), game, clock);
+        var dialogs = new NullDialogs();
+        var vm = new MainViewModel(new ToolCatalog(paths), installed, installer, new ToolLauncher(paths), new FontStore(paths, new HttpClient()), new HubSettingsStore(paths), _ => { }, paths, dialogs, clock);
+
+        vm.SelectAllCommand.Execute(null);
+
+        Assert.Empty(dialogs.Confirms);
+        Assert.All(vm.Tools, t => Assert.True(t.IsSelected));
     }
 
     private static (ActConfigEditor Editor, string ActDir) CreateEditor(TempDirectory temp)
@@ -232,7 +264,15 @@ public class ActSupportTests
         {
         }
 
-        public bool Confirm(string message, string title = "確認") => false;
+        public bool Answer { get; init; }
+
+        public List<string> Confirms { get; } = [];
+
+        public bool Confirm(string message, string title = "確認")
+        {
+            Confirms.Add(message);
+            return Answer;
+        }
 
         public ToolDefinition? ShowAddTool() => null;
 

@@ -1,11 +1,8 @@
 # XIVToolHub
 
-FINAL FANTASY XIV 向けの外部ツール（Dalamud プラグインや単体アプリ）を、GitHub のリリースからまとめてインストール・更新・管理する Windows アプリです。
+FINAL FANTASY XIV 向けの外部ツール（ACT・Triggevent Plus・Dalamud プラグインなど）を、インストールから環境構築・更新までまとめて行う Windows アプリです。
 
-A Windows app that installs, updates and manages third-party tools for FINAL FANTASY XIV (Dalamud plugins and standalone apps) from GitHub releases.
-
-> Glamaholic Plus と Triggevent Plus は、2026-10 に Glamaholic JP・Triggevent JP から改名しました。インストール済みのものはそのまま更新できます。
-> Glamaholic Plus and Triggevent Plus were renamed from Glamaholic JP and Triggevent JP in October 2026. Existing installs keep updating.
+A Windows app that installs, sets up and updates third-party tools for FINAL FANTASY XIV (ACT, Triggevent Plus, Dalamud plugins and more) in one place.
 
 ## 注意 / Warning
 
@@ -13,132 +10,107 @@ FINAL FANTASY XIV の利用規約では外部ツールの使用が禁止され�
 
 Third-party tools are prohibited by the FINAL FANTASY XIV Terms of Service and may result in account suspension. Use at your own risk.
 
+## インストール / Install
+
+1. [Releases](https://github.com/ElenaChan-me/XIVToolHub/releases/latest) から `XIVToolHub-Setup.exe` をダウンロードして実行します。管理者の権限は要りません（`%LOCALAPPDATA%\Programs\XIVToolHub` に入ります）。
+2. インストールが終わると XIVToolHub が起動します。使うツールにチェックを入れて「選択したツールをインストール・更新」を押してください。
+3. 必要なツールや前提のソフトは、選んだときとインストールのときに確認してから一緒に入れます。
+
+Download `XIVToolHub-Setup.exe` from the latest release and run it (no admin rights needed). After setup, tick the tools you want and press "Install / Update". Required tools and prerequisites are confirmed and installed together.
+
+Windows 10（1809 以降）/ Windows 11 の 64 ビット版で動きます。.NET のランタイムは同梱しています。
+Windows 10 (1809+) / 11, 64-bit. The .NET runtime is bundled.
+
+SmartScreen の「Windows によって PC が保護されました」が出た場合は、「詳細情報」→「実行」で起動できます。
+If SmartScreen warns about the installer, choose "More info" → "Run anyway".
+
+## 入れられるツール / Tools
+
+| ツール / Tool | 種類 / Kind | 取得元 / Source | 必要なツール / Requires | 前提のソフト / Prerequisites |
+| --- | --- | --- | --- | --- |
+| [Glamaholic Plus](https://github.com/ElenaChan-me/Glamaholic-Plus) | Dalamud プラグイン | ElenaChan-me/Glamaholic-Plus | - | XIVLauncher |
+| ACT（Advanced Combat Tracker） | アプリ / App | EQAditu/AdvancedCombatTracker | - | .NET Framework 4.8 |
+| FFXIV_ACT_Plugin | ACT プラグイン | ravahn/FFXIV_ACT_Plugin | ACT | - |
+| OverlayPlugin | ACT プラグイン | OverlayPlugin/OverlayPlugin | ACT, FFXIV_ACT_Plugin | VC++ ランタイム |
+| [ACT Localization Plus](https://github.com/ElenaChan-me/ACT-Localization-Plus) | ACT プラグイン | ElenaChan-me/ACT-Localization-Plus | ACT | - |
+| [Triggevent Plus](https://github.com/ElenaChan-me/Triggevent-Plus) | アプリ / App | ElenaChan-me/Triggevent-Plus | ACT, FFXIV_ACT_Plugin, OverlayPlugin | - |
+| Triggevent Plus ボイスパック（みあ・つきの） | ボイスパック | ElenaChan-me/Triggevent-VoiceGen | Triggevent Plus | - |
+
+「ツールを追加」から、GitHub のリリースで配布されているほかのツールもカタログに追加できます。
+Other tools released on GitHub can be added to the catalog with "Add tool".
+
+## 環境構築の流れ / How setup works
+
+- **必要なツール**: ツールにチェックを入れたとき、まだ入っていない必要なツールがあれば「同時にインストールしますか？」と確認します。断った場合は、そのツールだけでは動かないため選択を外します。
+  When a tool needs others that are not installed, you are asked whether to install them too.
+- **一緒に使うツール**: ACT を選ぶと、FFXIV_ACT_Plugin・OverlayPlugin・ACT Localization Plus も入れるか確認します（入れなくても ACT は動きます）。
+  Selecting ACT offers its usual plugins.
+- **前提のソフト**: VC++ ランタイム・.NET Framework 4.8・XIVLauncher など Windows に入れるソフトは、インストールのときに入っているか調べ、無ければ確認してから公式の配布元（Microsoft・XIVLauncher の GitHub）から取得して入れます。Microsoft の配布物は署名を確かめてから実行します。
+  Prerequisites are detected at install time and, after confirmation, installed from their official sources (signatures are verified for Microsoft installers).
+- **ACT の設定**: ACT はポータブル版として入れ、プラグインを ACT の設定に登録します。OverlayPlugin の WebSocket サーバー（127.0.0.1:10501）は、ACT を起動すると自動で始まるように設定します。
+  ACT is installed portable, plugins are registered and the OverlayPlugin WebSocket server is set to start automatically.
+- **Dalamud の設定**: Dalamud プラグインは XIVLauncher の「開発用プラグインの場所」に登録し、必要なら開発モードを有効にします。XIVLauncher で一度ゲームを起動してからインストールしてください。
+  Dalamud plugins are registered as dev plugins; launch the game once with XIVLauncher first.
+- **進み具合**: インストール・更新の間は、画面の下に全体の進み具合を表示します。処理中でも、入れ替えていないツールの起動などはできます。
+  Overall progress is shown at the bottom; other tools stay usable meanwhile.
+
 ## できること / Features
 
-- カタログに載っているツールを個別に、または複数選択してまとめてインストール・更新
-  Install or update tools individually or several at once
-- 最新リリースとの比較による更新の確認
-  Check for updates against the latest release
-- アンインストール、インストール先フォルダ・GitHub ページを開く、アプリの起動
-  Uninstall, open the install folder or GitHub page, launch applications
-- GitHub リポジトリを指定して新しいツールをカタログに追加
-  Add new tools to the catalog by GitHub repository
-- Private リポジトリ用の GitHub トークンを Windows の資格情報マネージャーに保存
-  Store a GitHub token for private repositories in Windows Credential Manager
-- Glamaholic Plus・Triggevent Plus の表示言語（日本語・英語・韓国語・中国語）をインストール時に選択し、日本語の場合は後から追加フォントを選択
-  Choose the display language (Japanese, English, Korean, Chinese) of the localized tools at install time, and an additional font for Japanese later
-- パッチの対応状況の表示。インストール済みのゲームのバージョン（`ffxivgame.ver`）を、Dalamud の配布サーバーが示す対応バージョンと、FFXIV_ACT_Plugin の最新リリースの日付と比べ、パッチ直後にまだ対応していないものを知らせます
-  Patch status: compares the installed game version with the version Dalamud supports and with the latest FFXIV_ACT_Plugin release date, and warns when one has not caught up yet
-- Triggevent Plus のボイスパックのインストール。インストールしたパックは Triggevent Plus の一覧に出て、最初のものはそのまま使われます
-  Install voice packs for Triggevent Plus; installed packs appear in Triggevent Plus and the first one is used automatically
-- XIVToolHub 自身の更新。起動したときに新しいバージョンがあれば、その場で更新するか聞きます。後からでも一覧の上の「更新して再起動」で入れ替えられます（配布の exe から起動しているときだけ）
-  Self-update: on startup XIVToolHub asks whether to update when a newer version exists; a banner also offers it later
-- 更新のあるツールのまとめて更新。起動時の確認で更新が見つかると一覧の上に出し、「すべて更新」で更新します。ACT・Triggevent Plus・ゲームの起動中で入れ替えられないものがあるときは、終了するのを待ってから始めます
-  Update all: tools with updates are listed in a banner; "Update all" waits for ACT, Triggevent Plus or the game to close when they block the update
-- 「ACT と Triggevent をまとめて起動」。ACT を起動し、OverlayPlugin の WebSocket が待ち受けを始めてから Triggevent Plus を起動します。起動中のものはそのまま使い、WebSocket サーバーが止まっている場合は知らせます
-  One-click launch: starts ACT, waits for the OverlayPlugin WebSocket, then starts Triggevent Plus; tools already running are left as they are
-
-### 同梱カタログ / Built-in catalog
-
-| ツール / Tool | 種類 / Kind | 取得元 / Source | 必要なツール / Requires |
-| --- | --- | --- | --- |
-| Glamaholic Plus | Dalamud プラグイン | ElenaChan-me/Glamaholic-Plus | - |
-| ACT（Advanced Combat Tracker） | アプリ / Application | EQAditu/AdvancedCombatTracker | - |
-| FFXIV_ACT_Plugin | ACT プラグイン | ravahn/FFXIV_ACT_Plugin | ACT |
-| OverlayPlugin | ACT プラグイン | OverlayPlugin/OverlayPlugin | ACT, FFXIV_ACT_Plugin |
-| ACT Localization Plus | ACT プラグイン | ElenaChan-me/ACT-Localization-Plus | ACT |
-| Triggevent Plus | アプリ / Application | ElenaChan-me/Triggevent-Plus | ACT, FFXIV_ACT_Plugin, OverlayPlugin |
-| Triggevent Plus ボイスパック（みあ・つきの） | ボイスパック / Voice pack | ElenaChan-me/Triggevent-VoiceGen（Private） | Triggevent Plus |
-
-ツールを選ぶと、必要なツールも自動で選択され、必要とされる側から順にインストールされます。ACT を選ぶと、FFXIV_ACT_Plugin・OverlayPlugin・ACT Localization Plus も一緒に選ばれます（不要なものは選択を外せます）。
-OverlayPlugin は、更新が止まっている ngld 版ではなく、後継の OverlayPlugin/OverlayPlugin を使います。
-
-Selecting a tool also selects the tools it requires, and they are installed in dependency order. Selecting ACT also selects FFXIV_ACT_Plugin, OverlayPlugin and ACT Localization Plus (they can be unselected).
-OverlayPlugin uses the maintained successor (OverlayPlugin/OverlayPlugin) rather than the inactive ngld version.
-
-## ACT とプラグイン / ACT and its plugins
-
-ACT は `%LOCALAPPDATA%\XIVToolHub\tools\act` にポータブル版としてインストールし、`-portable` で起動します。設定は同じフォルダの `Config\Advanced Combat Tracker.config.xml` に保存され、既存の ACT（`%APPDATA%\Advanced Combat Tracker`）には触れません。
-
-- ACT プラグインは展開後、上記の設定ファイルの `<ActPlugins>` に登録します。
-- ACT を一度も起動していない場合は、最小限の設定ファイルを作成します。ACT はこの状態でもプラグインを読み込みます。
-- 変更前には `Advanced Combat Tracker.config.xml.xivtoolhub-日時.bak` としてバックアップします。
-- ACT の起動中はプラグインのインストール・更新・削除を行いません。
-
-OverlayPlugin をインストールしたときと「まとめて起動」で ACT を起動するときに、OverlayPlugin の WebSocket サーバーを自動で開始する設定（127.0.0.1:10501）にします。利用者が変えたポートなどはそのまま残します。
-
-ACT Localization Plus は、ACT 自身のローカライズの仕組みで ACT の画面を日本語・韓国語・中国語にします。表示言語はハブで選んだものになり、変えたときは ACT を再起動してください。
-
-ACT is installed as a portable copy under `%LOCALAPPDATA%\XIVToolHub\tools\act` and started with `-portable`; an existing ACT installation is not touched.
-ACT plugins are registered in the portable ACT configuration (with a backup), and nothing is changed while ACT is running.
-The OverlayPlugin WebSocket server (127.0.0.1:10501) is set to start automatically when OverlayPlugin is installed and when ACT is started with "Launch all"; custom ports are kept.
-ACT Localization Plus translates ACT's screens through ACT's own localization mechanism, in the language chosen in the hub.
-
-## 表示言語とフォント / Display language and fonts
-
-Glamaholic Plus と Triggevent Plus は、初めてインストールするときに表示言語（日本語・English・한국어・简体中文）を選びます。
-インストール後は、ツールの「表示設定」から言語を変更でき、日本語の場合は 30 種類の追加フォントから選べます。
-
-- 選んだ設定は、ツールの起動ファイル・DLL と同じフォルダの `xivtoolhub-settings.json`（`{"language": "ja", "fontPath": "...", "theme": "dark"}`）に書き込み、ツールは起動時に読み込みます。更新しても設定は引き継ぎます。
-- フォントは同梱していません。公式に直接ダウンロードできるもの（源暎ぽっぷる、ふんわりラウンド、ポプらむ☆キュート、はちまるポップ、モッチーポップ）は配布元から取得し、それ以外は公式ページで入手したファイル（.ttf / .otf / .ttc または ZIP）を取り込みます。
-- 取得したフォントは `%LOCALAPPDATA%\XIVToolHub\fonts\<ID>` に置きます。ファイルの先頭のバイトでフォントであることを確認してから取り込みます。
-- 収録文字が少ないフォント（かなのみ等）でも、足りない文字は標準フォントで表示します。
-- 各フォントの利用規約は配布元で確認してください。さなフォン丸には「アプリへの使用禁止」の記載があるため、画面に注意を表示します。
-
-Glamaholic Plus and Triggevent Plus ask for a display language on first install. Afterwards, the language can be changed from the tool's settings, and for Japanese one of 30 additional fonts can be selected.
-The choice is written to `xivtoolhub-settings.json` next to the tool's entry file and kept across updates.
-Fonts are not bundled: those with an official direct download are fetched from the author's site, the others are imported from a file downloaded from the official page. Missing glyphs fall back to the default font. Please check each font's license on its official page.
-
-## テーマ / Themes
-
-画面下部の「テーマ」で、配色を「黒・赤」と「白・水色」から選べます。選んだテーマは XIVToolHub にすぐ反映され、Glamaholic Plus と Triggevent Plus にも `xivtoolhub-settings.json` の `theme`（`dark` / `light`）で伝わり、次回の起動時から同じ配色で表示されます。
-ハブから起動した Triggevent Plus では、テーマを XIVToolHub でまとめて管理するため、Triggevent 側のテーマ選択は表示しません。
-
-Choose "Black / Red" or "White / Light Blue" at the bottom of the window. The theme is applied to XIVToolHub immediately and passed to Glamaholic Plus and Triggevent Plus through the `theme` field of `xivtoolhub-settings.json`, so all tools share the same colors from their next start.
-
-## Dalamud プラグインの扱い / Dalamud plugins
-
-プラグインは `%LOCALAPPDATA%\XIVToolHub\tools\<ID>` に展開し、Dalamud の設定ファイル（`%APPDATA%\XIVLauncher\dalamudConfig.json`）の「開発用プラグインの場所」に DLL を登録します。
-
-- 登録したプラグインを読み込むため、Dalamud の開発モードが無効なら有効にします。
-- 設定を変更する前に、同じフォルダへ `dalamudConfig.json.xivtoolhub-日時.bak` としてバックアップします。
-- ゲームの起動中は設定が上書きされるため、変更しません。
-- 開発用プラグインの場所以外の設定には触れません。
-
-Plugins are extracted to `%LOCALAPPDATA%\XIVToolHub\tools\<ID>` and their DLL is added to Dalamud's dev plugin locations.
-Dev mode is enabled if needed, a backup of `dalamudConfig.json` is made before each change, and nothing is changed while the game is running.
+- まとめてインストール・更新・アンインストール、更新のあるツールの「すべて更新」（ACT・Triggevent Plus・ゲームの起動中は終了を待ってから更新）
+  Install / update / uninstall in bulk; "Update all" waits for running apps to close
+- XIVToolHub 自身の更新（起動時に確認）
+  Self-update on startup
+- パッチの対応状況の表示（ゲームのバージョンと、Dalamud・FFXIV_ACT_Plugin の対応を比べる）
+  Patch status for Dalamud and FFXIV_ACT_Plugin
+- 「ACT と Triggevent をまとめて起動」（ACT を起動し、WebSocket が使えるようになってから Triggevent Plus を起動）
+  One-click launch of ACT and Triggevent Plus
+- 表示言語（日本語・English・한국어・简体中文）とテーマ（黒・赤 / 白・水色）をツールにまとめて反映。日本語では 30 種類の追加フォントから選べます
+  Shared display language, theme and Japanese fonts for the localized tools
+- Triggevent Plus のボイスパックのインストール
+  Voice packs for Triggevent Plus
 
 ## 安全のための制限 / Safety
 
-- ツールのダウンロード先は `api.github.com` のリリースアセットに限定し、フォントはカタログに載せた公式の HTTPS の URL だけから取得 / Tools are downloaded only from GitHub release assets, fonts only from the official HTTPS URLs in the font catalog
-- ZIP 内の展開先の外を指すパスや、異常に大きいファイルは拒否 / Zip-slip and oversized archives are rejected
-- 更新は別フォルダに用意してから入れ替え、失敗時は元のバージョンを残す / Updates are staged and swapped; the previous version is kept on failure
-- 起動できるのは各ツールのフォルダ内の実行ファイルのみ / Only executables inside the tool's folder can be launched
-- ゲームのプロセスやファイルには一切アクセスしない（起動しているかの確認はプロセス名のみ）/ The game process and files are never accessed
+- ツールは GitHub のリリースアセットから、前提のソフトは公式の配布元から、フォントはカタログに載せた公式の URL からだけ取得します / Downloads only from GitHub releases, official prerequisite sources and the font catalog
+- ZIP の展開先の外を指すパスや、異常に大きいファイルは拒否します / Zip-slip and oversized archives are rejected
+- 更新は別の場所に用意してから入れ替え、失敗したら元のバージョンを残します / Updates are staged and rolled back on failure
+- 設定ファイル（ACT・OverlayPlugin・Dalamud）は変更する前にバックアップし、ACT やゲームの起動中は変更しません / Config files are backed up and never edited while ACT or the game is running
+- ゲームのプロセスやファイルには触れません（起動しているかはプロセス名だけで判断します） / The game itself is never touched
 
 ## 保存先 / Data locations
 
 | パス / Path | 内容 / Contents |
 | --- | --- |
+| `%LOCALAPPDATA%\Programs\XIVToolHub\` | XIVToolHub 本体 / The app |
 | `%LOCALAPPDATA%\XIVToolHub\tools\` | インストールしたツール / Installed tools |
-| `%LOCALAPPDATA%\XIVToolHub\installed.json` | インストール記録・表示言語・フォント / Install records, language and font |
-| `%LOCALAPPDATA%\XIVToolHub\fonts\` | 取得した追加フォント / Downloaded or imported fonts |
-| `%APPDATA%\XIVToolHub\catalog.json` | 追加したツールの定義 / User-added tools |
-| `%APPDATA%\XIVToolHub\settings.json` | テーマ / Theme |
-| 資格情報マネージャー `XIVToolHub:github-token` | GitHub トークン / GitHub token |
+| `%LOCALAPPDATA%\XIVToolHub\installed.json` | インストール記録・表示言語・フォント / Install records |
+| `%LOCALAPPDATA%\XIVToolHub\fonts\` | 追加フォント / Fonts |
+| `%APPDATA%\XIVToolHub\` | 追加したツールの定義・テーマ / User catalog and theme |
+| 資格情報マネージャー `XIVToolHub:github-token` | GitHub トークン（任意） / Optional GitHub token |
+
+アンインストールは Windows の「アプリと機能」から行えます。インストールしたツールと設定（`%LOCALAPPDATA%\XIVToolHub`）は残るので、不要なら削除してください。
+Uninstall from "Apps & features". Installed tools and settings are kept in `%LOCALAPPDATA%\XIVToolHub`.
+
+GitHub トークンは無くても使えます。短い時間に何度も確認して GitHub の利用制限（1時間に60回）に当たる場合に登録してください。
+A GitHub token is optional; register one if you hit GitHub's rate limit.
 
 ## 開発 / Development
 
 ```powershell
-dotnet build XIVToolHub.sln
 dotnet test XIVToolHub.sln
 dotnet run --project src/XIVToolHub.App
+# 配布用の exe とインストーラー（Inno Setup 6 が必要）
+./scripts/publish.ps1 -Tag v0.8.0
+./scripts/build-installer.ps1 -Version v0.8.0
 ```
 
 | パス / Path | 内容 / Contents |
 | --- | --- |
-| `src/XIVToolHub.Core` | カタログ、GitHub 取得、展開、Dalamud 設定編集、インストール処理 / Core logic |
+| `src/XIVToolHub.Core` | カタログ・GitHub・展開・設定ファイルの編集・前提のソフト・インストール / Core logic |
 | `src/XIVToolHub.App` | WPF アプリ / WPF app |
-| `tests/XIVToolHub.Tests` | xUnit テスト（GitHub 通信は偽の応答で再現） / Tests with a fake GitHub |
+| `tests/XIVToolHub.Tests` | xUnit テスト（通信は偽の応答で再現） / Tests with fake responses |
+| `installer/XIVToolHub.iss` | インストーラーの定義 / Installer script |
+| `release-notes/` | リリースの説明 / Release notes |
 
-ブランチは Git-flow（`main` / `develop` / `feature/*`）です。 / Branching follows Git-flow.
+`v*` のタグを push すると、GitHub Actions が exe とインストーラーを作ってリリースします。ブランチは Git-flow（`main` / `develop` / `feature/*`）です。
+Pushing a `v*` tag builds and releases the exe and installer. Branching follows Git-flow.

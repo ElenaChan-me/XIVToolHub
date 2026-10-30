@@ -1,3 +1,5 @@
+using System.Runtime.Versioning;
+using Microsoft.Win32;
 using XIVToolHub.Core.GitHub;
 using XIVToolHub.Core.Install;
 using XIVToolHub.Core.Models;
@@ -16,6 +18,9 @@ public sealed class SelfUpdater
 {
     public const string ExeName = "XIVToolHub.exe";
     public const string OldSuffix = ".old";
+
+    /// <summary>インストーラー（installer/XIVToolHub.iss）の AppId。「アプリと機能」に出る版を、入れ替えた版に合わせるのに使う。</summary>
+    public const string InstallerAppId = "{316C7E01-90F4-4529-AB38-66106DD0AC6B}_is1";
 
     public static readonly GitHubSource Source = new()
     {
@@ -114,12 +119,39 @@ public sealed class SelfUpdater
                 throw new HubException($"ダウンロードしたファイルに {ExeName} が含まれていません。");
             }
             Swap(downloaded, _exePath);
+            if (OperatingSystem.IsWindows() && ParseVersion(release.TagName) is { } version)
+            {
+                UpdateInstalledVersion(version);
+            }
             return _exePath;
         }
         finally
         {
             TryDelete(() => File.Delete(zip));
             TryDelete(() => Directory.Delete(staging, recursive: true));
+        }
+    }
+
+    /// <summary>
+    /// インストーラーで入れた場合、「アプリと機能」に出る版を新しい版に書き換える（XIVToolHub 自身の更新ではインストーラーを通らないため）。
+    /// </summary>
+    [SupportedOSPlatform("windows")]
+    private static void UpdateInstalledVersion(Version version)
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey($@"Software\Microsoft\Windows\CurrentVersion\Uninstall\{InstallerAppId}", writable: true);
+            if (key is null)
+            {
+                return;
+            }
+            var text = version.ToString(3);
+            key.SetValue("DisplayVersion", text);
+            key.SetValue("DisplayName", "XIVToolHub");
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+        {
+            // 表示の版が古いままでも動作には影響しない
         }
     }
 

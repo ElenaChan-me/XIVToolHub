@@ -22,11 +22,22 @@ jobs:
         shell: pwsh
         run: ./scripts/publish.ps1 -Tag "${{ github.ref_name }}"
 
+      # インストーラー。Inno Setup がランナーに無ければ入れる
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          ./scripts/build-installer.ps1 -Version "${{ github.ref_name }}"
+
+      # zip は XIVToolHub 自身の更新に使う。初めて入れる人には Setup.exe を案内する
       - name: Create release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           Compress-Archive -Path publish/win-x64/XIVToolHub.exe -DestinationPath XIVToolHub-win-x64.zip
-          gh release create "${{ github.ref_name }}" XIVToolHub-win-x64.zip `
-            --title "XIVToolHub ${{ github.ref_name }}" --notes "XIVToolHub ${{ github.ref_name }}"
+          $notes = "release-notes/${{ github.ref_name }}.md"
+          if (-not (Test-Path $notes)) { Set-Content -Path $notes -Value "XIVToolHub ${{ github.ref_name }}" -Encoding utf8 }
+          gh release create "${{ github.ref_name }}" publish/XIVToolHub-Setup.exe XIVToolHub-win-x64.zip `
+            --title "XIVToolHub ${{ github.ref_name }}" --notes-file $notes
