@@ -129,6 +129,9 @@ public sealed class MainViewModel : ObservableObject
 
     public bool IsWaitingForUpdateAll => _updateAllWait is not null;
 
+    /// <summary>まだ何もインストールしていない（インストーラーで入れた直後など）。始め方を案内する。</summary>
+    public bool IsFirstRun => !Tools.Any(t => t.IsInstalled);
+
     /// <summary>XIVToolHub の新しいバージョンがあるときの案内。無ければ null。</summary>
     public string? SelfUpdateText => _selfUpdate is null || _selfUpdater is null
         ? null
@@ -441,6 +444,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasUpdates));
         OnPropertyChanged(nameof(UpdatesText));
         OnPropertyChanged(nameof(IsWaitingForUpdateAll));
+        OnPropertyChanged(nameof(IsFirstRun));
     }
 
     /// <summary>起動直後の確認。XIVToolHub 自身に更新があれば、見落とさないようその場で聞く。</summary>

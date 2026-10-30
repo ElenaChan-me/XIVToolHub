@@ -36,7 +36,7 @@
     },
     "entryFile": "Advanced Combat Tracker.exe",
     "launchArguments": "-portable",
-    "notes": "ポータブル版として XIVToolHub のフォルダにインストールし、設定もそのフォルダ内に保存します。FFXIV_ACT_Plugin・OverlayPlugin・ACT 日本語化も一緒に選ばれます。初回起動時はスタートアップウィザードが表示されます。",
+    "notes": "ポータブル版として XIVToolHub のフォルダにインストールし、設定もそのフォルダ内に保存します。選ぶと、FFXIV_ACT_Plugin・OverlayPlugin・ACT Localization Plus も一緒に入れるか確認します。初回起動時はスタートアップウィザードが表示されます。",
     "includes": [
       "ffxiv-act-plugin",
       "overlayplugin",
