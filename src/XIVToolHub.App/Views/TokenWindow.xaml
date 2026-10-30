@@ -7,9 +7,9 @@
         Style="{StaticResource WindowStyle}">
     <StackPanel Margin="20">
         <TextBlock Style="{StaticResource HintText}" Margin="0,0,0,12">
-            Private リポジトリのツールを取得するときに使います。GitHub の設定で
-            「Fine-grained personal access token」を作成し、対象リポジトリの Contents を読み取り専用（Read-only）で許可してください。
-            ほかの人のリポジトリにコラボレーターとして招待されている場合は、Fine-grained で選べないことがあるので、「Tokens (classic)」で repo を許可したトークンを使ってください。
+            同梱のツールは公開リポジトリから取得するので、トークンは無くても使えます。
+            短い時間に何度も更新を確認して GitHub の利用制限（1時間に60回）に当たる場合や、Private リポジトリのツールを追加した場合に登録してください。
+            GitHub の設定で「Fine-grained personal access token」を作成し、対象リポジトリの Contents を読み取り専用（Read-only）で許可します。
             トークンは Windows の資格情報マネージャーに保存され、ファイルには残りません。
         </TextBlock>
         <TextBlock x:Name="StatusText" Margin="0,0,0,8" />

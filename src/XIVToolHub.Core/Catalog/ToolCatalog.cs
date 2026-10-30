@@ -160,6 +160,12 @@ public sealed partial class ToolCatalog
             errors.Add($"ボイスパックは Triggevent Plus（{TriggeventToolId}）に依存させてください。");
         }
 
+        var prerequisites = definition.Prerequisites ?? [];
+        if (prerequisites.Any(p => !Prerequisites.PrerequisiteCatalog.Known.ContainsKey(p ?? "")))
+        {
+            errors.Add("前提のソフトの指定が不正です。");
+        }
+
         var includes = definition.Includes ?? [];
         if (includes.Count > MaxDependencies || includes.Any(d => !IdPattern().IsMatch(d ?? "") || d == definition.Id))
         {

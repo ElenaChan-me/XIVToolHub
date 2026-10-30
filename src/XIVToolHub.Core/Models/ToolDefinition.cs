@@ -63,6 +63,12 @@ public sealed record ToolDefinition
     /// </summary>
     public IReadOnlyList<string> Includes { get; init; } = [];
 
+    /// <summary>
+    /// ツールの前に Windows に入れておく必要があるソフト（VC++ ランタイム・XIVLauncher など）の ID。
+    /// XIVToolHub の管理外のものなので、ツールをインストールするときに確認してから入れる。
+    /// </summary>
+    public IReadOnlyList<string> Prerequisites { get; init; } = [];
+
     /// <summary>アプリを起動するときの引数。</summary>
     public string LaunchArguments { get; init; } = "";
 

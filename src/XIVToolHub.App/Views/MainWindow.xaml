@@ -24,6 +24,17 @@
             </WrapPanel>
         </Border>
 
+        <!-- 初めて使うときの案内。必要なツールや前提のソフトは、選んだときとインストールのときに確認して一緒に入れる -->
+        <Border DockPanel.Dock="Top" Padding="12,8" Background="{DynamicResource SurfaceAltBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                Visibility="{Binding IsFirstRun, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="はじめに" FontWeight="SemiBold" />
+                <TextBlock TextWrapping="Wrap" Margin="0,2,0,0"
+                           Text="使うツールにチェックを入れて「選択したツールをインストール・更新」を押してください。ACT やプラグインなど必要なものは、選んだときに確認して一緒に入れます。VC++ ランタイムや XIVLauncher など Windows に入れるソフトも、インストールのときに確認してから公式の配布元から入れます。" />
+            </StackPanel>
+        </Border>
+
         <!-- 古いハブのまま使い続けて、カタログの変更（改名など）に追いつけなくなるのを防ぐ -->
         <Border DockPanel.Dock="Top" Padding="12,6" Background="{DynamicResource UpdateBackground}"
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
